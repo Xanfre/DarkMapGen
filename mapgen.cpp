@@ -16,6 +16,11 @@
 #include <stdio.h>
 #include <math.h>
 #include <direct.h>
+#ifdef _MSC_VER
+#include <stddef.h>
+#else
+#include <cstdint>
+#endif
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
@@ -23,12 +28,19 @@
 #include <FL/fl_draw.H>
 #include <FL/Fl_Tree.H>
 #include <FL/Fl_Scroll.H>
-#include <FL/Fl_Ask.H>
+#include <FL/fl_ask.H>
 #include <FL/Fl_Tooltip.H>
 #include <FL/Fl_File_Chooser.H> 
 #include "Fl_Cursor_Shape.H"
+#ifdef CUSTOM_FLTK
 #include "Fl_Image_Surface.H"
+#else
+#include <FL/Fl_Image_Surface.H>
+#endif
 #include "png.h"
+#ifdef __GNUC__
+#define min fmin
+#endif
 
 
 /////////////////////////////////////////////////////////////////////
@@ -3214,7 +3226,7 @@ static void OnTreeSelChange(Fl_Widget*, void*)
 		return;
 	}
 
-	g_iCurSelTreeId = (int)p->user_data();
+	g_iCurSelTreeId = (intptr_t)p->user_data();
 	g_pCurSelTreeItem = p;
 
 	int iMap = MAP_FROM_TREE_ID(g_iCurSelTreeId);
@@ -3547,13 +3559,13 @@ static void OnCmdInfo(Fl_Widget*, void *)
 
 static void OnCmdDisplayMode(Fl_Widget*, void *p)
 {
-	if (g_displayMode == (DisplayMode)(int)p)
+	if (g_displayMode == (DisplayMode)(intptr_t)p)
 		return;
 
-	if ((g_displayMode == DM_FADE_NONSEL || (int)p == DM_FADE_NONSEL) && g_pProj)
+	if ((g_displayMode == DM_FADE_NONSEL || (intptr_t)p == DM_FADE_NONSEL) && g_pProj)
 		g_pProj->FlushScaledImages();
 
-	g_displayMode = (DisplayMode)(int)p;
+	g_displayMode = (DisplayMode)(intptr_t)p;
 	g_pImageView->redraw();
 }
 
@@ -3568,7 +3580,7 @@ static void OnCmdZoom(Fl_Widget*, void *p)
 	const int Xmap = (g_pScrollView->xposition() + Xclient) / g_iZoom;
 	const int Ymap = (g_pScrollView->yposition() + Yclient) / g_iZoom;
 
-	if ( ChangeZoom(g_iZoom + (int)p) )
+	if ( ChangeZoom(g_iZoom + (intptr_t)p) )
 		ScrollImageTo(Xmap * g_iZoom - Xclient, Ymap * g_iZoom - Yclient);
 }
 
@@ -3608,7 +3620,7 @@ static void OnCmdChangePage(Fl_Widget*, void *p)
 		return;
 
 	char s[64];
-	sprintf(s, "PAGE%03d", g_pProj->iCurMap + (int)p);
+	sprintf(s, "PAGE%03d", g_pProj->iCurMap + (intptr_t)p);
 	Fl_Tree_Item *pItem = g_pTreeView->find_item(s);
 	if (pItem)
 	{
@@ -3816,7 +3828,9 @@ static void ScrollImageTo(int Xzoomed, int Yzoomed)
 }
 
 
+#ifdef CUSTOM_FLTK
 extern Fl_Callback *fl_message_preshow_cb_;
+#endif
 
 static void OnPrepareFlMessageBox(Fl_Window *w, void*)
 {
@@ -3852,8 +3866,10 @@ static void OnPrepareFlMessageBox(Fl_Window *w, void*)
 
 static void InitFLTK(const char *lpszFlTheme, int iFontSize)
 {
+#ifdef CUSTOM_FLTK
 	// set custom pre-show callback for fl message boxes so that we can center them to the dialog instead of mouse
 	fl_message_preshow_cb_ = (Fl_Callback*)OnPrepareFlMessageBox;
+#endif
 
 	Fl::visual(FL_RGB);
 
