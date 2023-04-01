@@ -16,11 +16,17 @@ LDFLAGS_ALL = $(LDFLAGS)
 
 LIBS = -lfltk -lfltk_images
 
-LIBS += -lfltk_png -lz
+TARGET_OS ?= $(OS)
+ifeq ($(TARGET_OS),Windows_NT)
+	LIBS += -lfltk_png -lz
 ifeq ($(STATIC),)
 	LIBS += -luuid -lgdi32
 else
 	LIBS += -lole32 -luuid -lcomctl32 -lgdi32
+endif
+	BINEXT = .exe
+else
+	LIBS += -lpng -lz -lX11
 endif
 
 ifneq ($(STATIC),)
@@ -36,11 +42,11 @@ ifneq ($(CUSTOM_FLTK),)
 			$(objdir)/Fl_Image_Surface.o
 endif
 
-all: $(objdir) DarkMapGen.exe
+all: $(objdir) DarkMapGen$(BINEXT)
 
 clean:
 	rm -rf $(objdir)
-	rm -f DarkMapGen.exe
+	rm -f DarkMapGen$(BINEXT)
 
 $(objdir):
 	mkdir -p $@
@@ -51,5 +57,5 @@ $(objdir)/%.o: %.cxx
 $(objdir)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS_ALL) $(CPPFLAGS_ALL) -c -o $@ $<
 
-DarkMapGen.exe: $(OBJS)
+DarkMapGen$(BINEXT): $(OBJS)
 	$(CXX) $(CXXFLAGS_ALL) $(LDFLAGS_ALL) $^ -o $@ $(LIBS)

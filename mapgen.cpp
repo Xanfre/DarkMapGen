@@ -12,10 +12,27 @@
  * License along with DarkMapGen.
  */
 
+#ifdef _WIN32
 #include <string.h>
+#else
+#include <string>
+#endif
 #include <stdio.h>
 #include <math.h>
+#ifdef _WIN32
 #include <direct.h>
+#elif defined(__unix__)
+#include <unistd.h>
+#define stricmp strcasecmp
+#define _copysign copysign
+#define _stat stat
+#define _getcwd getcwd
+#define _chdir chdir
+#ifdef __linux__
+#include <linux/limits.h>
+#define MAX_PATH PATH_MAX
+#endif
+#endif
 #ifdef _MSC_VER
 #include <stddef.h>
 #else
@@ -115,6 +132,17 @@ typedef unsigned int BOOL;
 // get location array element index from tree id (-1 if invalid)
 #define LOC_FROM_TREE_ID(_treeid) \
 	(MAP_FROM_TREE_ID(_treeid) < 0) ? -1 : g_pProj->maps[MAP_FROM_TREE_ID(_treeid)].GetArrayIndexFromLocationIndex(LOCIDX_FROM_TREE_ID(_treeid))
+
+#ifdef __unix__
+// work around bug in X11
+#define EVENT_SHIFT() (g_iEventState&FL_SHIFT)
+#define EVENT_CTRL() (g_iEventState&FL_CTRL)
+#define EVENT_ALT() (g_iEventState&FL_ALT)
+#else
+#define EVENT_SHIFT() Fl::event_shift()
+#define EVENT_CTRL() Fl::event_ctrl()
+#define EVENT_ALT() Fl::event_alt()
+#endif
 
 
 enum DisplayMode
@@ -992,6 +1020,11 @@ static BOOL g_bUserDefinedWindowSize = FALSE;
 
 static BOOL g_bShowingFlInputDialog = FALSE;
 
+#ifdef __unix__
+// work around bug in X11
+static int g_iEventState = 0;
+#endif
+
 
 /////////////////////////////////////////////////////////////////////
 
@@ -1070,9 +1103,9 @@ public:
 		const BOOL bOldMaybeDeleteShape = m_bMaybeDeleteShape;
 		m_bMaybeDeleteShape = FALSE;
 
-		if ( Fl::event_ctrl() )
+		if ( EVENT_CTRL() )
 		{
-			if (Fl::event_alt() && !m_bCreatingShape && LOCIDX_FROM_TREE_ID(g_iCurSelTreeId) >= 0)
+			if (EVENT_ALT() && !m_bCreatingShape && LOCIDX_FROM_TREE_ID(g_iCurSelTreeId) >= 0)
 			{
 				newMode = EM_LABELPOS;
 
@@ -1085,14 +1118,14 @@ public:
 			else
 				newMode = EM_MOVE;
 		}
-		else if ( Fl::event_alt() )
+		else if ( EVENT_ALT() )
 		{
 			if (!m_bCreatingShape)
 				newMode = EM_ADD_DEL;
 
-			m_bMaybeDeleteShape = (newMode == EM_ADD_DEL) && Fl::event_shift();
+			m_bMaybeDeleteShape = (newMode == EM_ADD_DEL) && EVENT_SHIFT();
 		}
-		/*else if ( Fl::event_shift() )
+		/*else if ( EVENT_SHIFT() )
 		{
 		}*/
 
@@ -1140,7 +1173,7 @@ public:
 		m_iMousePosSnapped[1] = Y;
 
 		// snapping if shift is pressed
-		if (!Fl::event_shift() || g_pProj->iCurMap < 0 || m_mode == EM_LABELPOS)
+		if (!EVENT_SHIFT() || g_pProj->iCurMap < 0 || m_mode == EM_LABELPOS)
 			return;
 
 		// "smart-snap (tm)", snap against any other shape vert if within snap radius to it
@@ -1501,7 +1534,7 @@ found_edge:;
 			{
 				if (m_bCreatingShape)
 				{
-					if ( Fl::event_alt() )
+					if ( EVENT_ALT() )
 						CommitSubShape();
 					else
 						CommitShapeAsNewLoc();
@@ -1576,6 +1609,9 @@ found_edge:;
 
 			case FL_Shift_L:
 			case FL_Shift_R:
+#ifdef __unix__
+				g_iEventState |= FL_SHIFT;
+#endif
 				if (m_bCreatingShape)
 				{
 					UpdateMousePos();
@@ -1587,11 +1623,17 @@ found_edge:;
 
 			case FL_Control_L:
 			case FL_Control_R:
+#ifdef __unix__
+				g_iEventState |= FL_CTRL;
+#endif
 				UpdateEditMode();
 				return 1;
 
 			case FL_Alt_L:
 			case FL_Alt_R:
+#ifdef __unix__
+				g_iEventState |= FL_ALT;
+#endif
 				UpdateEditMode();
 				return 1;
 
@@ -1629,6 +1671,9 @@ found_edge:;
 			{
 			case FL_Shift_L:
 			case FL_Shift_R:
+#ifdef __unix__
+				g_iEventState &= ~FL_SHIFT;
+#endif
 				if (m_bCreatingShape && !m_bPanning)
 				{
 					UpdateMousePos();
@@ -1636,6 +1681,18 @@ found_edge:;
 					return 1;
 				}
 				break;
+
+#ifdef __unix__
+			case FL_Control_L:
+			case FL_Control_R:
+				g_iEventState &= ~FL_CTRL;
+				break;
+
+			case FL_Alt_L:
+			case FL_Alt_R:
+				g_iEventState &= ~FL_ALT;
+				break;
+#endif
 
 			case ' ':
 				if (m_bPanning)
@@ -1653,7 +1710,7 @@ found_edge:;
 		case FL_MOUSEWHEEL:
 			if (m_iDragging)
 				return 1;
-			if ( Fl::event_alt() )
+			if ( EVENT_ALT() )
 			{
 				// zoom around mouse cursor (maintain same orig map XY pos at cursor before and after zoom change)
 				int Xclient = Fl::event_x() - g_pScrollView->x();
@@ -1679,7 +1736,7 @@ found_edge:;
 
 				return 1;
 			}
-			else if ( Fl::event_ctrl() )
+			else if ( EVENT_CTRL() )
 			{
 				if ( g_pScrollView->hscrollbar.visible() )
 				{
@@ -1828,6 +1885,9 @@ found_edge:;
 			fl_line_style(FL_DASH, 0);
 			fl_line(dx, dy + Y, dx + w(), dy + Y);
 			fl_line(dx + X, dy, dx + X, dy + h());
+#ifndef _WIN32
+			fl_line_style(0);
+#endif
 		}
 
 		// draw in-progress shape
@@ -1868,6 +1928,9 @@ found_edge:;
 					const int Yfirst = dy + MAP2CL(m_newShape.verts[0].y);
 					fl_line(dx+m_iMousePosSnapped[0], dy+m_iMousePosSnapped[1], Xfirst, Yfirst);
 				}
+#ifndef _WIN32
+				fl_line_style(0);
+#endif
 			}
 		}
 
@@ -2003,6 +2066,9 @@ found_edge:;
 						fl_color(linecolor);
 						fl_line_style(FL_DOT, g_iLineWidth);
 						fl_line(Xprev, Yprev, X, Y);
+#ifndef _WIN32
+						fl_line_style(0);
+#endif
 					}
 
 					Xprev = X;
@@ -3761,7 +3827,11 @@ static void MakeWindow(int W, int H)
 	g_pTreeView->callback(OnTreeSelChange);
 	g_pTreeView->marginleft(0);
 
+#ifdef _WIN32
     g_pMainWnd->resizable(NULL);
+#else
+    g_pMainWnd->resizable(g_pScrollView);
+#endif
 	g_pMainWnd->callback(OnMainWndClose);
 
 	// get number of pixels to add to g_pScrollView to get the window size
