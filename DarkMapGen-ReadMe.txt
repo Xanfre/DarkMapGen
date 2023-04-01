@@ -125,9 +125,12 @@ Command-line options
    -thief           : run in Thief mode without auto-detection
    -shock           : run in System Shock 2 mode without auto-detection
    -cwd             : use current working directory instead of prompting user
+   -theme_gtk       : use the 'GTK+' UI theme (only available if another default theme is set)
+   -theme_dark      : use the 'GTK+' UI theme with dark colors
    -theme_plastic   : use the 'Plastic' UI theme
    -theme_base      : use the basic UI theme
    -fontsize <n>    : custom font size for UI and labels, a value between 8 and 18 (default is 14)
+   -scale <n>       : custom scale for the main window (0 = 1x, 1 = 1.25x, 2 = 1.5x, 3 = 1.75x, 4 = 2x)
    -winsize <W>x<H> : custom window size at start-up
    -viewmode <n>    : set initial display mode (1=outlines, 2=fill sel, 3=fill all, 4=dim all, 5=fade unsel)
    -zoom <n>        : set initial zoom level (1 to 6)

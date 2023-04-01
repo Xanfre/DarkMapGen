@@ -51,10 +51,11 @@
 #include "Fl_Cursor_Shape.H"
 #ifdef CUSTOM_FLTK
 #include "Fl_Image_Surface.H"
+#include "png.h"
 #else
 #include <FL/Fl_Image_Surface.H>
+#include <png.h>
 #endif
-#include "png.h"
 #ifdef __GNUC__
 #define min fmin
 #endif
@@ -76,7 +77,6 @@ typedef unsigned int BOOL;
 #define FALSE 0
 #define TRUE 1
 #endif
-
 
 /////////////////////////////////////////////////////////////////////
 
@@ -132,6 +132,15 @@ typedef unsigned int BOOL;
 // get location array element index from tree id (-1 if invalid)
 #define LOC_FROM_TREE_ID(_treeid) \
 	(MAP_FROM_TREE_ID(_treeid) < 0) ? -1 : g_pProj->maps[MAP_FROM_TREE_ID(_treeid)].GetArrayIndexFromLocationIndex(LOCIDX_FROM_TREE_ID(_treeid))
+
+#define SCALE(_x) _x * g_iScale / 4
+
+#ifdef DEF_THEME
+#define DEF_THEME_S(_s) DEF_THEME_S_(_s)
+#define DEF_THEME_S_(_s) #_s
+#endif
+
+#define SETCLR(_x,_y) Fl::set_color((Fl_Color)_x,dark_cmap[_y++])
 
 #ifdef __unix__
 // work around bug in X11
@@ -995,6 +1004,7 @@ static BOOL g_bShockMaps = FALSE;
 
 static int g_iLocationImageExtraBorder = 0;
 static int g_iAlphaExportAA = 4;
+static int g_iScale = 4;
 
 static sProject *g_pProj = NULL;
 static int g_iZoom = 2;
@@ -1019,6 +1029,10 @@ static int g_iWplus, g_iHplus;
 static BOOL g_bUserDefinedWindowSize = FALSE;
 
 static BOOL g_bShowingFlInputDialog = FALSE;
+
+static unsigned int dark_cmap[42] = {
+#include "dark_cmap.h"
+};
 
 #ifdef __unix__
 // work around bug in X11
@@ -3799,25 +3813,25 @@ static void MakeWindow(int W, int H)
 {
 	if (W <= 0 || H <= 0)
 	{
-		W = 800;
-		H = 507;
+		W = SCALE(800);
+		H = SCALE(507);
 	}
 
 	g_pMainWnd = new cMainWindow(W, H, DARKMAPGEN_TITLE);
 	g_pMainWnd->end();
 
-    g_pMenuBar = new Fl_Menu_Bar(0, 0, W, 25);
+    g_pMenuBar = new Fl_Menu_Bar(0, 0, W, SCALE(25));
 	g_pMainWnd->add(g_pMenuBar);
 
-	g_pScrollView = new Fl_Scroll(0, 25, W-160, H-27);
+	g_pScrollView = new Fl_Scroll(0, SCALE(25), W-SCALE(160), H-SCALE(27));
 	g_pScrollView->end();
 	g_pMainWnd->add(g_pScrollView);
 	g_pScrollView->box(FL_FLAT_BOX);
 
-	g_pImageView = new cImageView(0, 25, W-160, H-27);
+	g_pImageView = new cImageView(0, SCALE(25), W-SCALE(160), H-SCALE(27));
 	g_pScrollView->add(g_pImageView);
 
-    g_pTreeView = new Fl_Tree_Ex(W-160, 25, 160, H-27);
+    g_pTreeView = new Fl_Tree_Ex(W-SCALE(160), SCALE(25), SCALE(160), H-SCALE(27));
 	g_pMainWnd->add(g_pTreeView);
 	g_pTreeView->color(FL_LIGHT3);
 	g_pTreeView->selectmode(FL_TREE_SELECT_SINGLE);
@@ -3838,7 +3852,7 @@ static void MakeWindow(int W, int H)
 	g_iWplus = g_pMainWnd->w() - g_pScrollView->w();
 	g_iHplus = g_pMainWnd->h() - g_pScrollView->h();
 
-	g_pMainWnd->size_range(320 + g_iWplus, 240 + g_iHplus, 0, 0);
+	g_pMainWnd->size_range(SCALE(320) + g_iWplus, SCALE(240) + g_iHplus, 0, 0);
 
 	InitCursors();
 }
@@ -3943,12 +3957,21 @@ static void InitFLTK(const char *lpszFlTheme, int iFontSize)
 
 	Fl::visual(FL_RGB);
 
-	Fl::scheme(lpszFlTheme);
+	if (*lpszFlTheme == 'd')
+	{
+		unsigned int c, i = 0;
+		for (c = FL_FOREGROUND_COLOR; c < FL_FOREGROUND_COLOR+16; c++) SETCLR(c,i); // 3-bit colormap
+		for (c = FL_GRAY0; c <= FL_BLACK; c++) SETCLR(c,i); // grayscale ramp and FL_BLACK
+		SETCLR(FL_WHITE,i); // FL_WHITE
+		Fl::scheme(lpszFlTheme+1);
+	}
+	else
+		Fl::scheme(lpszFlTheme);
 
 	if (iFontSize < 8)
 		iFontSize = 8;
 	else if (iFontSize > 18)
-		iFontSize = 18;
+		iFontSize = (SCALE(14) > 18) ? SCALE(14) : 18;
 
 	FL_NORMAL_SIZE = iFontSize;
 	fl_message_font(FL_HELVETICA, FL_NORMAL_SIZE);
@@ -4007,7 +4030,11 @@ static void InvokeShortcutFLTK(int key)
 int main(int argc, char **argv)
 {
 	BOOL bUseCurrentDir = FALSE;
+#ifdef DEF_THEME
+	const char *lpszFlTheme = DEF_THEME_S(DEF_THEME);
+#else
 	const char *lpszFlTheme = "gtk+";
+#endif
 	int iFontSize = 14;
 	int w = -1, h = -1;
 
@@ -4043,7 +4070,23 @@ int main(int argc, char **argv)
 				g_iAlphaExportAA = 8;
 		}
 
-		if ( HasCommandLineOption(argc, argv, "-theme_plastic") )
+		if ( GetCommandLineInt(argc, argv, "-scale", g_iScale) )
+		{
+			g_iScale += 4;
+			if (g_iScale < 4)
+				g_iScale = 4;
+			else if (g_iScale > 8)
+				g_iScale = 8;
+		}
+
+#ifdef DEF_THEME
+		if ( HasCommandLineOption(argc, argv, "-theme_gtk") )
+			lpszFlTheme = "gtk+";
+		else
+#endif
+		if ( HasCommandLineOption(argc, argv, "-theme_dark") )
+			lpszFlTheme = "dgtk+";
+		else if ( HasCommandLineOption(argc, argv, "-theme_plastic") )
 			lpszFlTheme = "plastic";
 		else if ( HasCommandLineOption(argc, argv, "-theme_base") )
 			lpszFlTheme = "base";
@@ -4054,10 +4097,10 @@ int main(int argc, char **argv)
 				sscanf(argv[i+1], "%dx%d", &w, &h);
 				if (h > 0)
 				{
-					if (w < 320 + g_iWplus)
-						w = 320 + g_iWplus;
-					if (h < 240 + g_iHplus)
-						h = 240 + g_iHplus;
+					if (w < SCALE(320) + g_iWplus)
+						w = SCALE(320) + g_iWplus;
+					if (h < SCALE(240) + g_iHplus)
+						h = SCALE(240) + g_iHplus;
 
 					g_bUserDefinedWindowSize = TRUE;
 				}
@@ -4068,16 +4111,27 @@ int main(int argc, char **argv)
 
     MakeWindow(w, h);
 
+	if (*lpszFlTheme == 'd' && g_pTreeView)
+	{
+		g_pTreeView->selection_color(FL_FOREGROUND_COLOR);
+		g_pTreeView->item_labelfgcolor(FL_FOREGROUND_COLOR);
+		g_pTreeView->connectorcolor(FL_FOREGROUND_COLOR);
+	}
+
 	if (g_pMainWnd)
 	{
 		if (!bUseCurrentDir)
 		{
+			if (iFontSize > 18)
+				FL_NORMAL_SIZE = 18;
 			char *sDir = fl_dir_chooser("Select Map Directory", NULL, 0);
 			if (!sDir)
 			{
 				delete g_pMainWnd;
 				return 0;
 			}
+			if (iFontSize > 18)
+				FL_NORMAL_SIZE = iFontSize;
 
 			_chdir(sDir);
 		}
@@ -4090,6 +4144,8 @@ int main(int argc, char **argv)
 			fl_alert("No map pages found. Make sure that the working directory contains properly named map page images as PNG.");
 			return 0;
 		}
+
+		Fl::scrollbar_size(SCALE(Fl::scrollbar_size()));
 
 		InitControls();
 
