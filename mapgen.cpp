@@ -299,7 +299,7 @@ struct sShape
 			return FALSE;
 
 		const sVertex* polypts = verts;
-		const sVertex pt = { x, y };
+		const sVertex pt = { (short int)x, (short int)y };
 
 		int wind = 0;
 		sVertex lastpt = polypts[iVertCount-1];
@@ -1844,7 +1844,7 @@ found_edge:;
 
 			for (int i=0; i<map.iLocationCount; i++)
 			{
-				const BOOL bCurSel = g_iCurSelTreeId == MAKE_TREE_ID(g_pProj->iCurMap, map.locs[i].iLocationIndex);
+				const BOOL bCurSel = (g_iCurSelTreeId >= 0 && (UINT)g_iCurSelTreeId == MAKE_TREE_ID(g_pProj->iCurMap, map.locs[i].iLocationIndex));
 				if (bCurSel)
 				{
 					iCurSel = i;
@@ -2501,10 +2501,10 @@ static BOOL LoadProject(const char *sDir)
 		g_bShockMaps = FALSE;
 
 		struct _stat st;
-		sprintf(s, "%s"DIRSEP_STR"page001a.png", sDir);
+		sprintf(s, "%s" DIRSEP_STR "page001a.png", sDir);
 		if ( !_stat(s, &st) )
 		{
-			sprintf(s, "%s"DIRSEP_STR"page001a-hi.png", sDir);
+			sprintf(s, "%s" DIRSEP_STR "page001a-hi.png", sDir);
 			if ( !_stat(s, &st) )
 				g_bShockMaps = TRUE;
 		}
@@ -2518,9 +2518,9 @@ static BOOL LoadProject(const char *sDir)
 	for (int i=0; i<MAX_MAPS; i++)
 	{
 		if (g_bShockMaps)
-			sprintf(s, "%s"DIRSEP_STR"page%03da.png", sDir, i);
+			sprintf(s, "%s" DIRSEP_STR "page%03da.png", sDir, i);
 		else
-			sprintf(s, "%s"DIRSEP_STR"page%03d.png", sDir, i);
+			sprintf(s, "%s" DIRSEP_STR "page%03d.png", sDir, i);
 
 		Fl_PNG_Image *img = new Fl_PNG_Image(s);
 		if ( !img->w() )
@@ -2538,7 +2538,7 @@ static BOOL LoadProject(const char *sDir)
 
 		if (g_bShockMaps)
 		{
-			sprintf(s2, "%s"DIRSEP_STR"page%03da-hi.png", sDir, i);
+			sprintf(s2, "%s" DIRSEP_STR "page%03da-hi.png", sDir, i);
 
 			Fl_PNG_Image *imgHi = new Fl_PNG_Image(s2);
 			if ( !imgHi->w() )
@@ -2897,7 +2897,7 @@ static BOOL SavePNG32(Fl_RGB_Image *img, char *sFileName)
 		// exception thrown during read
 		png_destroy_write_struct(&pPng, &pPngInfo);
 		fclose(f);
-		return NULL;
+		return FALSE;
 	}
 
 	png_set_write_fn(pPng, (void*)f, fwrite_png, fflush_png);
@@ -3058,9 +3058,9 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 				if (iGenerateLocIdx < 0 || iGenerateLocIdx == j)
 				{
 					if (g_bShockMaps)
-						sprintf(s, "%s"DIRSEP_STR"p%03dx%03d", g_pProj->sDir, i, loc.iLocationIndex);
+						sprintf(s, "%s" DIRSEP_STR "p%03dx%03d", g_pProj->sDir, i, loc.iLocationIndex);
 					else
-						sprintf(s, "%s"DIRSEP_STR"p%03dr%03d", g_pProj->sDir, i, loc.iLocationIndex);
+						sprintf(s, "%s" DIRSEP_STR "p%03dr%03d", g_pProj->sDir, i, loc.iLocationIndex);
 
 					if ( !SaveImg32(img, s, bSaveTGA) )
 					{
@@ -3085,7 +3085,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 							break;
 						}
 
-						sprintf(s, "%s"DIRSEP_STR"p%03dr%03d", g_pProj->sDir, i, loc.iLocationIndex);
+						sprintf(s, "%s" DIRSEP_STR "p%03dr%03d", g_pProj->sDir, i, loc.iLocationIndex);
 
 						if ( !SaveImg32(imgHi, s, bSaveTGA) )
 						{
@@ -3712,7 +3712,7 @@ static void OnCmdChangePage(Fl_Widget*, void *p)
 static void OnCmdAbout(Fl_Widget*, void*)
 {
 	fl_message(
-		"DarkMapGen "DARKMAPGEN_VERSION"\n"
+		"DarkMapGen " DARKMAPGEN_VERSION "\n"
 		"\n"
 		"A tool for defining and generating auto-map locations for the Dark engine.\n"
 		"\n"
@@ -3914,7 +3914,6 @@ static void ScrollImageTo(int Xzoomed, int Yzoomed)
 
 #ifdef CUSTOM_FLTK
 extern Fl_Callback *fl_message_preshow_cb_;
-#endif
 
 static void OnPrepareFlMessageBox(Fl_Window *w, void*)
 {
@@ -3947,6 +3946,7 @@ static void OnPrepareFlMessageBox(Fl_Window *w, void*)
 		o->mark(0);
 	}
 }
+#endif
 
 static void InitFLTK(const char *lpszFlTheme, int iFontSize)
 {
