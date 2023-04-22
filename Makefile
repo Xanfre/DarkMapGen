@@ -9,7 +9,7 @@ CXX = $(TARGET)-g++
 LD = $(TARGET)-g++
 endif
 
-CXXFLAGS_ALL = -O2 -Wall -Wno-class-memaccess $(CXXFLAGS)
+CXXFLAGS_ALL = -O2 -Wall -Wno-class-memaccess -Wno-unused-result -Wno-format-security $(CXXFLAGS)
 CPPFLAGS_ALL = -std=gnu++11 $(CPPFLAGS)
 LDFLAGS_ALL = $(LDFLAGS)
 

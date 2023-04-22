@@ -21,7 +21,7 @@
 #include <math.h>
 #ifdef _WIN32
 #include <direct.h>
-#elif defined(__unix__)
+#else
 #include <unistd.h>
 #define stricmp strcasecmp
 #define _copysign copysign
@@ -76,6 +76,9 @@ typedef unsigned int UINT;
 typedef unsigned int BOOL;
 #define FALSE 0
 #define TRUE 1
+#define B_UNSET 2
+#else
+#define B_UNSET -1
 #endif
 
 /////////////////////////////////////////////////////////////////////
@@ -174,6 +177,7 @@ struct sLocation;
 
 static void SetModifiedFlag();
 static void ClearModifiedFlag();
+static void ResetMouse();
 static void GenerateLocationImageForView(const sMap &map, sLocation &loc, BOOL bDim = TRUE, const int AA = 4);
 static void FakeTransparentImage(Fl_Image *img, Fl_Color bg, const UINT alpha = 48);
 static void OnCmdDelete(Fl_Widget* = NULL, void* = NULL);
@@ -2295,7 +2299,7 @@ found_edge:;
 		char s[64];
 		sprintf(s, "PAGE%03d/%03d", g_pProj->iCurMap, iNewLocIndex);
 		Fl_Tree_Item *p = g_pTreeView->add(s);
-		p->user_data( (void*)MAKE_TREE_ID(g_pProj->iCurMap, iNewLocIndex) );
+		p->user_data( (void*)(intptr_t)MAKE_TREE_ID(g_pProj->iCurMap, iNewLocIndex) );
 		g_pTreeView->end();
 		g_pTreeView->select_only(p);
 		g_pTreeView->set_item_focus(p);
@@ -2495,7 +2499,7 @@ static BOOL LoadProject(const char *sDir)
 	if (g_pProj)
 		delete g_pProj;
 
-	if (g_bShockMaps == -1)
+	if (g_bShockMaps == B_UNSET)
 	{
 		// auto-detect shock/thief mode
 		g_bShockMaps = FALSE;
@@ -3117,7 +3121,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 			else
 			{
 				fl_cursor(FL_CURSOR_DEFAULT);
-				fl_alert("Failed to generate location image %03d on PAG%03d", loc.iLocationIndex, i);
+				fl_alert("Failed to generate location image %03d on PAGE%03d", loc.iLocationIndex, i);
 				fl_cursor(FL_CURSOR_WAIT);
 				bErrors = TRUE;
 				break;
@@ -3133,7 +3137,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 	fl_cursor(FL_CURSOR_DEFAULT);
 
 	if (bErrors)
-		fl_alert("Errors occurred, generated files are icomplete");
+		fl_alert("Errors occurred, generated files are incomplete");
 	else
 	{
 		if (iGenerateLocIdx >= 0)
@@ -3143,6 +3147,8 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 		else
 			fl_message("Generated files for %d locations on %d page(s)", iGeneratedImages, iGeneratedPages);
 	}
+
+	ResetMouse();
 }
 
 
@@ -3168,6 +3174,13 @@ static void ClearModifiedFlag()
 		if (g_pMainWnd)
 			g_pMainWnd->label(g_sAppTitle);
 	}
+}
+
+static void ResetMouse()
+{
+	// send a move event to the main window to reset the mouse cursor
+	if (g_pMainWnd)
+		Fl::handle(FL_MOVE, g_pMainWnd);
 }
 
 static void OnWindowResized(int w, int h)
@@ -3275,7 +3288,7 @@ static void PopulateTree()
 
 		sprintf(s, "PAGE%03d", i);
 		Fl_Tree_Item *p = g_pTreeView->add(s);
-		p->user_data((void*)MAKE_TREE_ID(i, -1));
+		p->user_data((void*)(intptr_t)MAKE_TREE_ID(i, -1));
 		p->labelfont(FL_HELVETICA | FL_BOLD);
 
 		for (int j=0; j<g_pProj->maps[i].iLocationCount; j++)
@@ -3284,7 +3297,7 @@ static void PopulateTree()
 
 			sprintf(s, "PAGE%03d/%03d", i, loc.iLocationIndex);
 			p = g_pTreeView->add(s);
-			p->user_data((void*)MAKE_TREE_ID(i, loc.iLocationIndex));
+			p->user_data((void*)(intptr_t)MAKE_TREE_ID(i, loc.iLocationIndex));
 		}
 	}
 
@@ -3323,8 +3336,11 @@ static void OnMainWndClose(Fl_Widget*, void*)
 	if (Fl::event() == FL_SHORTCUT && Fl::event_key() == FL_Escape)
 		return;
 
+	fl_cursor(FL_CURSOR_DEFAULT);
 	if (!g_pProj->bModified || !fl_choice("Any unsaved changes will be lost. Exit?", "Yes", "No", NULL))
 		g_pMainWnd->hide();
+	else
+		ResetMouse();
 }
 
 static void OnCmdExit(Fl_Widget*, void*)
@@ -3343,12 +3359,16 @@ static void OnCmdGenerateFiles(Fl_Widget*, void*)
 		if (g_pProj->maps[i].iLocationCount)
 			goto has_locations;
 
+	fl_cursor(FL_CURSOR_DEFAULT);
 	fl_message("No locations have been defined, nothing to generate.");
+	ResetMouse();
 	return;
 
 has_locations:
 
+	fl_cursor(FL_CURSOR_DEFAULT);
 	int res = fl_choice("Generate files for all map locations.\nExisting files will be overwritten. Proceed?", "Cancel", "OK", "Generate as TGA");
+	ResetMouse();
 	if (!res)
 		return;
 
@@ -3368,6 +3388,8 @@ static void OnCmdGenerateSelected(Fl_Widget*, void*)
 
 	int res;
 
+	fl_cursor(FL_CURSOR_DEFAULT);
+
 	if (iLoc < 0)
 	{
 		if (!g_pProj->maps[iMap].iLocationCount)
@@ -3380,6 +3402,8 @@ static void OnCmdGenerateSelected(Fl_Widget*, void*)
 	}
 	else
 		res = fl_choice("Generate files for location %03d on PAGE%03d.\nExisting files will be overwritten. Proceed?", "Cancel", "OK", "Generate as TGA", iLocIdx, iMap);
+
+	ResetMouse();
 
 	if (!res)
 		return;
@@ -3408,11 +3432,13 @@ static void OnCmdDelete(Fl_Widget*, void*)
 		if (!g_pProj->maps[iMap].iLocationCount)
 			return;
 
-		if ( !fl_choice("Delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
+		fl_cursor(FL_CURSOR_DEFAULT);
+		if ( !fl_choice("Delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap)
+			|| !fl_choice("Are you really sure that you want to delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
+		{
+			ResetMouse();
 			return;
-
-		if ( !fl_choice("Are you really sure that you want to delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
-			return;
+		}
 
 		g_pProj->maps[iMap].FlushScaledImages();
 		g_pProj->maps[iMap].iLocationCount = 0;
@@ -3424,8 +3450,12 @@ static void OnCmdDelete(Fl_Widget*, void*)
 	}
 	else
 	{
+		fl_cursor(FL_CURSOR_DEFAULT);
 		if ( !fl_choice("Delete location %03d on PAGE%03d?", "Cancel", "OK", NULL, iLocIndex, iMap) )
+		{
+			ResetMouse();
 			return;
+		}
 
 		g_pProj->maps[iMap].DeleteLocation(iLoc);
 		SetModifiedFlag();
@@ -3456,6 +3486,8 @@ static void OnCmdDelete(Fl_Widget*, void*)
 		}
 	}
 
+	ResetMouse();
+
 	g_pTreeView->redraw();
 	g_pImageView->redraw();
 }
@@ -3476,7 +3508,9 @@ static void OnCmdEditIndex(Fl_Widget*, void*)
 
 retry:
 
+	fl_cursor(FL_CURSOR_DEFAULT);
 	const char *t = fl_input_ex("New Index", s);
+	ResetMouse();
 	if (!t)
 		return;
 
@@ -3484,6 +3518,7 @@ retry:
 
 	if (iNewIndex < 0 || iNewIndex > MAX_LOCATIONS_PER_MAP-1)
 	{
+		fl_cursor(FL_CURSOR_DEFAULT);
 		fl_alert("Invalid index, must be a value in the range 0 to %d", MAX_LOCATIONS_PER_MAP-1);
 		goto retry;
 	}
@@ -3494,8 +3529,14 @@ retry:
 	sLocation *pPrevLoc = g_pProj->maps[iMap].GetByLocationIndex(iNewIndex);
 	if (pPrevLoc)
 	{
+		fl_cursor(FL_CURSOR_DEFAULT);
 		if ( !fl_choice("Another location with index %03d already exists. Swap indices?", "Cancel", "OK", NULL, iNewIndex) )
+		{
+			ResetMouse();
 			return;
+		}
+
+		ResetMouse();
 
 		pPrevLoc->iLocationIndex = g_pProj->maps[iMap].locs[iLoc].iLocationIndex;
 	}
@@ -3532,7 +3573,7 @@ retry:
 		sprintf(s, "PAGE%03d/%03d", iMap, iNewIndex);
 		g_pTreeView->begin();
 		Fl_Tree_Item *pItem = g_pTreeView->add(s);
-		pItem->user_data( (void*)MAKE_TREE_ID(iMap, iNewIndex) );
+		pItem->user_data( (void*)(intptr_t)MAKE_TREE_ID(iMap, iNewIndex) );
 		g_pTreeView->end();
 		g_pTreeView->select_only(pItem);
 		g_pTreeView->set_item_focus(pItem);
@@ -3555,17 +3596,26 @@ static void OnCmdMove(Fl_Widget*, void*)
 
 	if (iLocIndex < 0)
 	{
+		fl_cursor(FL_CURSOR_DEFAULT);
+
 		if (!g_pProj->maps[iMap].iLocationCount)
 		{
 			fl_message("No locations on this page");
+			ResetMouse();
 			return;
 		}
 
 		if ( !fl_choice("Move all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
+		{
+			ResetMouse();
 			return;
+		}
 
 		if ( !fl_choice("Are you really sure that you want to move all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
+		{
+			ResetMouse();
 			return;
+		}
 	}
 	// should never happen
 	else if (iLoc < 0)
@@ -3574,7 +3624,9 @@ static void OnCmdMove(Fl_Widget*, void*)
 	// static so dialog defaults to previously used vals
 	static char s[256] = "0 0";
 
+	fl_cursor(FL_CURSOR_DEFAULT);
 	const char *t = fl_input_ex("Move Delta (dX dY)", s);
+	ResetMouse();
 	if (!t)
 		return;
 
@@ -3625,6 +3677,7 @@ static void OnCmdInfo(Fl_Widget*, void *)
 		if (brect[3] >= g_pProj->maps[iMap].img->h()) brect[3] = g_pProj->maps[iMap].img->h() - 1;
 	}
 
+	fl_cursor(FL_CURSOR_DEFAULT);
 	fl_message(
 		"Location %03d on PAGE%03d\n"
 		"\n"
@@ -3635,6 +3688,104 @@ static void OnCmdInfo(Fl_Widget*, void *)
 		brect[0], brect[1],
 		brect[2]-brect[0]+1, brect[3]-brect[1]+1
 		);
+	ResetMouse();
+}
+
+static void OnCmdRecover(Fl_Widget*, void*)
+{
+	if (g_pProj->iMapCount == 0 || g_pProj->maps[g_pProj->iCurMap].iLocationCount > 0)
+	{
+		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message("PAGE%03d must have no existing locations before attempting recovery", g_pProj->iCurMap);
+		ResetMouse();
+		return;
+	}
+
+	int iLocations = 0;
+	BOOL bErrors = FALSE;
+	char s[12];
+
+	fl_cursor(FL_CURSOR_WAIT);
+
+	// dark rects file containing the location positions (in index order)
+	sprintf(s, "p%03dra.bin", g_pProj->iCurMap);
+	FILE *f = fopen(s, "rb");
+	if (!f && g_bShockMaps)
+	{
+		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_alert("Could not locate rects file \"%s\" for recovery", s);
+		fl_cursor(FL_CURSOR_WAIT);
+		sprintf(s, "p%03dxa.bin", g_pProj->iCurMap);
+		f = fopen(s, "rb");
+	}
+	if (!f)
+	{
+		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_alert("Could not locate rects file \"%s\" for recovery", s);
+		ResetMouse();
+		return;
+	}
+
+	short darkRect[4] = {0};
+	sShape shape;
+	shape.iVertCount = 4;
+
+	while ( 1 == fread(darkRect, sizeof(darkRect), 1, f) )
+	{
+		const int iNewLocIndex = g_pProj->maps[g_pProj->iCurMap].GetFreeLocationIndex();
+		if (iNewLocIndex < 0)
+		{
+			bErrors = TRUE;
+			break;
+		}
+
+		sMap &map = g_pProj->maps[g_pProj->iCurMap];
+
+		// construct rectangle (clockwise)
+		shape.verts[0].x = darkRect[0];
+		shape.verts[0].y = darkRect[1];
+		shape.verts[1].x = darkRect[2];
+		shape.verts[1].y = darkRect[1];
+		shape.verts[2].x = darkRect[2];
+		shape.verts[2].y = darkRect[3];
+		shape.verts[3].x = darkRect[0];
+		shape.verts[3].y = darkRect[3];
+
+		sLocation &newLoc = map.locs[map.iLocationCount];
+		map.iLocationCount++;
+
+		// default label offset to bounds center
+		shape.CalcBoundingRect();
+		shape.iLabelPos[0] = shape.iBoundRect[0] + ((shape.iBoundRect[2] - shape.iBoundRect[0]) / 2);
+		shape.iLabelPos[1] = shape.iBoundRect[1] + ((shape.iBoundRect[3] - shape.iBoundRect[1]) / 2);
+
+		newLoc.iLocationIndex = iNewLocIndex;
+		newLoc.AddShape(shape);
+
+		g_pTreeView->begin();
+		sprintf(s, "PAGE%03d/%03d", g_pProj->iCurMap, iNewLocIndex);
+		Fl_Tree_Item *p = g_pTreeView->add(s);
+		p->user_data( (void*)(intptr_t)MAKE_TREE_ID(g_pProj->iCurMap, iNewLocIndex) );
+		g_pTreeView->end();
+
+		iLocations++;
+	}
+
+	fclose(f);
+
+	fl_cursor(FL_CURSOR_DEFAULT);
+
+	if (bErrors)
+		fl_alert("Errors occurred, not all locations could be recovered");
+	else
+		fl_message("Successfully recovered %d locations", iLocations);
+
+	ResetMouse();
+
+	SetModifiedFlag();
+
+	g_pTreeView->redraw();
+	g_pImageView->redraw();
 }
 
 static void OnCmdDisplayMode(Fl_Widget*, void *p)
@@ -3700,7 +3851,7 @@ static void OnCmdChangePage(Fl_Widget*, void *p)
 		return;
 
 	char s[64];
-	sprintf(s, "PAGE%03d", g_pProj->iCurMap + (intptr_t)p);
+	sprintf(s, "PAGE%03d", g_pProj->iCurMap + (int)(intptr_t)p);
 	Fl_Tree_Item *pItem = g_pTreeView->find_item(s);
 	if (pItem)
 	{
@@ -3711,6 +3862,7 @@ static void OnCmdChangePage(Fl_Widget*, void *p)
 
 static void OnCmdAbout(Fl_Widget*, void*)
 {
+	fl_cursor(FL_CURSOR_DEFAULT);
 	fl_message(
 		"DarkMapGen " DARKMAPGEN_VERSION "\n"
 		"\n"
@@ -3722,6 +3874,7 @@ static void OnCmdAbout(Fl_Widget*, void*)
 		"    FLTK (fltk.org)\n"
 		"    Fl_Cursor_Shape for FLTK by Matthias Melcher\n"
 		);
+	ResetMouse();
 }
 
 
@@ -3744,6 +3897,7 @@ static Fl_Menu_Item g_menu[] =
 		{"Edit Location &Index ", FL_F+9, OnCmdEditIndex},
 		{"&Move Selected Location ", 'm', OnCmdMove},
 		{"&View Location Info", 'i', OnCmdInfo},
+		{"&Recover Page Locations", 'r', OnCmdRecover},
 		{ 0 },
 
 	{"&View", 0, 0, 0, FL_SUBMENU},
@@ -3775,7 +3929,9 @@ static Fl_Menu_Item g_menu[] =
 static void InitControls()
 {
 	sprintf(g_sAppTitle, DARKMAPGEN_TITLE " " DARKMAPGEN_VERSION " %s - %s", g_bShockMaps?"[SS2]":"[Thief]", g_pProj->sDir);
-	sprintf(g_sAppTitleModified, "%s *", g_sAppTitle);
+	strcpy(g_sAppTitleModified, g_sAppTitle);
+	if (strlen(g_sAppTitleModified)+2 < sizeof(g_sAppTitleModified))
+		strcat(g_sAppTitleModified, " *");
 
 	g_pMainWnd->label(g_sAppTitle);
 
@@ -4038,7 +4194,7 @@ int main(int argc, char **argv)
 	int iFontSize = 14;
 	int w = -1, h = -1;
 
-	g_bShockMaps = -1;
+	g_bShockMaps = B_UNSET;
 
 	if (argc > 1)
 	{
