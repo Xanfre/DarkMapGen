@@ -28,10 +28,7 @@
 #define _stat stat
 #define _getcwd getcwd
 #define _chdir chdir
-#ifdef __linux__
-#include <linux/limits.h>
 #define MAX_PATH PATH_MAX
-#endif
 #endif
 #ifdef _MSC_VER
 #include <stddef.h>
@@ -750,7 +747,7 @@ struct sMap
 		locs[iArrayIndex].~sLocation();
 
 		if (iArrayIndex < iLocationCount-1)
-			memmove(locs + iArrayIndex, locs + iArrayIndex + 1, sizeof(locs[0]) * (iLocationCount - iArrayIndex - 1));
+			memmove((void*)(locs + iArrayIndex), locs + iArrayIndex + 1, sizeof(locs[0]) * (iLocationCount - iArrayIndex - 1));
 
 		iLocationCount--;
 
