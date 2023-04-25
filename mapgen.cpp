@@ -1095,6 +1095,9 @@ public:
 
 		m_iCurCursor = n;
 
+		if (g_pImageView != Fl::belowmouse())
+			return;
+
 		switch (n)
 		{
 		case -1: fl_cursor(FL_CURSOR_DEFAULT); break;
@@ -3250,6 +3253,8 @@ static BOOL ChangeZoom(int n)
 	g_pProj->FlushScaledImages();
 
 	ChangeMap(g_pProj->iCurMap, TRUE);
+
+	ResetMouse();
 
 	return TRUE;
 }
