@@ -26,8 +26,6 @@
 #define _getcwd getcwd
 #define _chdir chdir
 #define MAX_PATH PATH_MAX
-#define min(a,b) (((a)<(b))?(a):(b))
-#define max(a,b) (((a)>(b))?(a):(b))
 #endif
 #ifdef _MSC_VER
 #include <stddef.h>
@@ -51,6 +49,10 @@
 #else
 #include <FL/Fl_Image_Surface.H>
 #include <png.h>
+#endif
+#ifdef __GNUC__
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 #endif
 
 
