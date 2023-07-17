@@ -12,16 +12,13 @@
  * License along with DarkMapGen.
  */
 
-#ifdef _WIN32
-#include <string.h>
-#else
-#include <string>
-#endif
 #include <stdio.h>
 #include <math.h>
 #ifdef _WIN32
+#include <string.h>
 #include <direct.h>
 #else
+#include <string>
 #include <unistd.h>
 #define stricmp strcasecmp
 #define _copysign copysign
@@ -29,6 +26,8 @@
 #define _getcwd getcwd
 #define _chdir chdir
 #define MAX_PATH PATH_MAX
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 #endif
 #ifdef _MSC_VER
 #include <stddef.h>
@@ -52,9 +51,6 @@
 #else
 #include <FL/Fl_Image_Surface.H>
 #include <png.h>
-#endif
-#ifdef __GNUC__
-#define min fmin
 #endif
 
 
@@ -135,14 +131,7 @@ typedef unsigned int BOOL;
 
 #define SCALE(_x) _x * g_iScale / 4
 
-#ifdef DEF_THEME
-#define DEF_THEME_S(_s) DEF_THEME_S_(_s)
-#define DEF_THEME_S_(_s) #_s
-#endif
-
-#define SETCLR(_x,_y) Fl::set_color((Fl_Color)_x,dark_cmap[_y++])
-
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 // work around bug in X11
 #define EVENT_SHIFT() (g_iEventState&FL_SHIFT)
 #define EVENT_CTRL() (g_iEventState&FL_CTRL)
@@ -1005,7 +994,11 @@ static BOOL g_bShockMaps = FALSE;
 
 static int g_iLocationImageExtraBorder = 0;
 static int g_iAlphaExportAA = 4;
+#ifdef DEF_SCALE
+static int g_iScale = DEF_SCALE + 3;
+#else
 static int g_iScale = 4;
+#endif
 
 static sProject *g_pProj = NULL;
 static int g_iZoom = 2;
@@ -1031,11 +1024,7 @@ static BOOL g_bUserDefinedWindowSize = FALSE;
 
 static BOOL g_bShowingFlInputDialog = FALSE;
 
-static unsigned int dark_cmap[42] = {
-#include "dark_cmap.h"
-};
-
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 // work around bug in X11
 static int g_iEventState = 0;
 #endif
@@ -1627,7 +1616,7 @@ found_edge:;
 
 			case FL_Shift_L:
 			case FL_Shift_R:
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 				g_iEventState |= FL_SHIFT;
 #endif
 				if (m_bCreatingShape)
@@ -1641,7 +1630,7 @@ found_edge:;
 
 			case FL_Control_L:
 			case FL_Control_R:
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 				g_iEventState |= FL_CTRL;
 #endif
 				UpdateEditMode();
@@ -1649,7 +1638,7 @@ found_edge:;
 
 			case FL_Alt_L:
 			case FL_Alt_R:
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 				g_iEventState |= FL_ALT;
 #endif
 				UpdateEditMode();
@@ -1689,7 +1678,7 @@ found_edge:;
 			{
 			case FL_Shift_L:
 			case FL_Shift_R:
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 				g_iEventState &= ~FL_SHIFT;
 #endif
 				if (m_bCreatingShape && !m_bPanning)
@@ -1700,7 +1689,7 @@ found_edge:;
 				}
 				break;
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__UNIX__)
 			case FL_Control_L:
 			case FL_Control_R:
 				g_iEventState &= ~FL_CTRL;
@@ -4117,19 +4106,26 @@ static void InitFLTK(const char *lpszFlTheme, int iFontSize)
 
 	if (*lpszFlTheme == 'd')
 	{
+		const unsigned int dark_cmap[42] = {
+#include "dark_cmap.h"
+		};
 		unsigned int c, i = 0;
+#define SETCLR(_x,_y) Fl::set_color((Fl_Color)_x,dark_cmap[_y++])
 		for (c = FL_FOREGROUND_COLOR; c < FL_FOREGROUND_COLOR+16; c++) SETCLR(c,i); // 3-bit colormap
 		for (c = FL_GRAY0; c <= FL_BLACK; c++) SETCLR(c,i); // grayscale ramp and FL_BLACK
 		SETCLR(FL_WHITE,i); // FL_WHITE
+#undef SETCLR
 		Fl::scheme(lpszFlTheme+1);
 	}
 	else
 		Fl::scheme(lpszFlTheme);
 
+	int MAX_S = max(SCALE(14), 18);
+
 	if (iFontSize < 8)
 		iFontSize = 8;
-	else if (iFontSize > 18)
-		iFontSize = (SCALE(14) > 18) ? SCALE(14) : 18;
+	else if (iFontSize > MAX_S)
+		iFontSize = MAX_S;
 
 	FL_NORMAL_SIZE = iFontSize;
 	fl_message_font(FL_HELVETICA, FL_NORMAL_SIZE);
@@ -4188,8 +4184,13 @@ static void InvokeShortcutFLTK(int key)
 int main(int argc, char **argv)
 {
 	BOOL bUseCurrentDir = FALSE;
+	BOOL bSetFontSize = FALSE;
 #ifdef DEF_THEME
+#define DEF_THEME_S(s) DEF_THEME_S_(s)
+#define DEF_THEME_S_(s) #s
 	const char *lpszFlTheme = DEF_THEME_S(DEF_THEME);
+#undef DEF_THEME_S
+#undef DEF_THEME_S_
 #else
 	const char *lpszFlTheme = "gtk+";
 #endif
@@ -4205,7 +4206,8 @@ int main(int argc, char **argv)
 		else if ( HasCommandLineOption(argc, argv, "-shock") )
 			g_bShockMaps = TRUE;
 		bUseCurrentDir = HasCommandLineOption(argc, argv, "-cwd");
-		GetCommandLineInt(argc, argv, "-fontsize", iFontSize);
+		if ( GetCommandLineInt(argc, argv, "-fontsize", iFontSize) )
+			bSetFontSize = TRUE;
 		g_bHideSelectedOutline = HasCommandLineOption(argc, argv, "-hidelines");
 
 		if ( GetCommandLineInt(argc, argv, "-zoom", g_iZoom) )
@@ -4230,11 +4232,13 @@ int main(int argc, char **argv)
 
 		if ( GetCommandLineInt(argc, argv, "-scale", g_iScale) )
 		{
-			g_iScale += 4;
+			g_iScale += 3;
 			if (g_iScale < 4)
 				g_iScale = 4;
 			else if (g_iScale > 8)
 				g_iScale = 8;
+			if (!bSetFontSize)
+				iFontSize = SCALE(iFontSize);
 		}
 
 #ifdef DEF_THEME
@@ -4280,7 +4284,8 @@ int main(int argc, char **argv)
 	{
 		if (!bUseCurrentDir)
 		{
-			if (iFontSize > 18)
+			BOOL bChangeFont = iFontSize > 18;
+			if (bChangeFont)
 				FL_NORMAL_SIZE = 18;
 			char *sDir = fl_dir_chooser("Select Map Directory", NULL, 0);
 			if (!sDir)
@@ -4288,7 +4293,7 @@ int main(int argc, char **argv)
 				delete g_pMainWnd;
 				return 0;
 			}
-			if (iFontSize > 18)
+			if (bChangeFont)
 				FL_NORMAL_SIZE = iFontSize;
 
 			_chdir(sDir);

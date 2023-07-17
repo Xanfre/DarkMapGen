@@ -2,11 +2,11 @@ objdir = ./objs
 
 TARGET ?=
 ifeq ($(TARGET),)
-CXX = g++
-LD = g++
+CXX ?= g++
+LD ?= g++
 else
-CXX = $(TARGET)-g++
-LD = $(TARGET)-g++
+CXX ?= $(TARGET)-g++
+LD ?= $(TARGET)-g++
 endif
 
 CXXFLAGS_ALL = -O2 -Wall -Wno-unused-result -Wno-format-security $(CXXFLAGS)
@@ -21,15 +21,11 @@ ifeq ($(TARGET_OS),Windows_NT)
 ifeq ($(STATIC),)
 	LIBS += -luuid -lgdi32
 else
-	LIBS += -lole32 -luuid -lcomctl32 -lgdi32
+	LIBS += -lole32 -luuid -lcomctl32 -lgdi32 -static
 endif
 	BINEXT = .exe
 else
 	LIBS += -lpng -lz -lX11
-endif
-
-ifneq ($(STATIC),)
-	LIBS += -static
 endif
 
 OBJS = $(objdir)/Fl_Cursor_Shape.o \
