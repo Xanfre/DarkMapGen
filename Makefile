@@ -1,12 +1,17 @@
 objdir = ./objs
 
+PREFIX ?= /usr
+BINDIR = $(PREFIX)/bin
+DOCDIR = $(PREFIX)/share/doc/DarkMapGen
+LICDIR = $(PREFIX)/share/licenses/DarkMapGen
+
 TARGET ?=
 ifeq ($(TARGET),)
 CXX ?= g++
 LD ?= g++
 else
-CXX ?= $(TARGET)-g++
-LD ?= $(TARGET)-g++
+CXX = $(TARGET)-g++
+LD = $(TARGET)-g++
 endif
 
 CXXFLAGS_ALL = -O2 -Wall -Wno-unused-result -Wno-format-security $(CXXFLAGS)
@@ -26,6 +31,7 @@ endif
 	BINEXT = .exe
 else
 	LIBS += -lpng -lz -lX11
+	BINEXT =
 endif
 
 OBJS = $(objdir)/Fl_Cursor_Shape.o \
@@ -38,6 +44,14 @@ ifneq ($(CUSTOM_FLTK),)
 endif
 
 all: $(objdir) DarkMapGen$(BINEXT)
+
+install:
+	mkdir -p $(DESTDIR)$(BINDIR)
+	mkdir -p $(DESTDIR)$(DOCDIR)
+	mkdir -p $(DESTDIR)$(LICDIR)
+	install -p -m 755 DarkMapGen$(BINEXT) $(DESTDIR)$(BINDIR)
+	install -p -m 644 DarkMapGen-ReadMe.txt $(DESTDIR)$(DOCDIR)
+	install -p -m 644 license.txt $(DESTDIR)$(LICDIR)/LICENSE
 
 clean:
 	rm -rf $(objdir)
