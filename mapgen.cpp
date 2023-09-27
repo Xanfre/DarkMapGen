@@ -2851,8 +2851,8 @@ static void FakeTransparentImage(Fl_Image *img, Fl_Color bg, const UINT alpha)
 
 static void fwrite_png(png_structp pPng, png_bytep data, png_size_t length) { fwrite(data, 1, length, (FILE*)png_get_io_ptr(pPng)); }
 static void fflush_png(png_structp pPng) { fflush( (FILE*)png_get_io_ptr(pPng) ); }
-static png_voidp malloc_png(png_structp pPng, png_alloc_size_t size) { return malloc(size); }
-static void free_png(png_structp pPng, png_voidp p) { free(p); }
+static png_voidp malloc_png(png_structp, png_alloc_size_t size) { return malloc(size); }
+static void free_png(png_structp, png_voidp p) { free(p); }
 
 #ifndef png_jmpbuf
 #  define png_jmpbuf(pPng) ((pPng)->png_jmpbuf)
@@ -2950,7 +2950,7 @@ static BOOL SaveTGA32(Fl_RGB_Image *img, char *sFileName)
 	};
 	#pragma pack()
 
-	sTgaHeader hdr = {0};
+	sTgaHeader hdr = {};
 
 	hdr.img_type = 2;
 	hdr.bpp = 32;
@@ -3254,7 +3254,7 @@ static const char* fl_input_ex(const char *label, char *deflt)
 {
 	g_bShowingFlInputDialog = TRUE;
 
-	const char *ret = fl_input(label, deflt);
+	const char *ret = fl_input("%s", label, deflt);
 
 	g_bShowingFlInputDialog = FALSE;
 
@@ -3878,42 +3878,42 @@ static void OnCmdAbout(Fl_Widget*, void*)
 // main menu
 static Fl_Menu_Item g_menu[] =
 {
-	{"&File", 0, 0, 0, FL_SUBMENU},
-		{"&Save Project", FL_COMMAND+'s', OnCmdSave, NULL, FL_MENU_DIVIDER},
-		{"&Generate Map Files ", FL_F+7, OnCmdGenerateFiles},
-		{"G&enerate Selected Only ", FL_COMMAND+(FL_F+7), OnCmdGenerateSelected, NULL, FL_MENU_DIVIDER},
-		{"E&xit", FL_ALT+'x', OnCmdExit},
-		{ 0 },
+	{"&File", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0},
+		{"&Save Project", FL_COMMAND+'s', OnCmdSave, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0},
+		{"&Generate Map Files ", FL_F+7, OnCmdGenerateFiles, NULL, 0, 0, 0, 0, 0},
+		{"G&enerate Selected Only ", FL_COMMAND+(FL_F+7), OnCmdGenerateSelected, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0},
+		{"E&xit", FL_ALT+'x', OnCmdExit, NULL, 0, 0, 0, 0, 0},
+		{},
 
-	{"&Edit", 0, 0, 0, FL_SUBMENU},
-		{"&Delete Selected Location ", FL_Delete, OnCmdDelete},
-		{"Edit Location &Index ", FL_F+9, OnCmdEditIndex},
-		{"&Move Selected Location ", 'm', OnCmdMove},
-		{"&View Location Info", 'i', OnCmdInfo},
-		{"&Recover Page Locations", 'r', OnCmdRecover},
-		{ 0 },
+	{"&Edit", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0},
+		{"&Delete Selected Location ", FL_Delete, OnCmdDelete, NULL, 0, 0, 0, 0, 0},
+		{"Edit Location &Index ", FL_F+9, OnCmdEditIndex, NULL, 0, 0, 0, 0, 0},
+		{"&Move Selected Location ", 'm', OnCmdMove, NULL, 0, 0, 0, 0, 0},
+		{"&View Location Info", 'i', OnCmdInfo, NULL, 0, 0, 0, 0, 0},
+		{"&Recover Page Locations", 'r', OnCmdRecover, NULL, 0, 0, 0, 0, 0},
+		{},
 
-	{"&View", 0, 0, 0, FL_SUBMENU},
-		{"&Outlines Only", FL_COMMAND+'1', OnCmdDisplayMode, (void*)DM_OUTLINES, FL_MENU_RADIO|FL_MENU_VALUE},
-		{"Fill &Selection", FL_COMMAND+'2', OnCmdDisplayMode, (void*)DM_FILLSEL, FL_MENU_RADIO},
-		{"Fill &All", FL_COMMAND+'3', OnCmdDisplayMode, (void*)DM_FILLALL, FL_MENU_RADIO},
-		{"&Dim All", FL_COMMAND+'4', OnCmdDisplayMode, (void*)DM_DIMMED, FL_MENU_RADIO},
-		{"Fade &Unselected", FL_COMMAND+'5', OnCmdDisplayMode, (void*)DM_FADE_NONSEL, FL_MENU_RADIO|FL_MENU_DIVIDER},
-		{"&Thick Lines", FL_COMMAND+'t', OnCmdToggleThickLines, NULL, FL_MENU_TOGGLE},
-		{"Draw &Labels", FL_COMMAND+'l', OnCmdToggleLabels, NULL, FL_MENU_TOGGLE},
-		{"&Fill Create Shape", FL_COMMAND+'f', OnCmdToggleFillNewShape, NULL, FL_MENU_TOGGLE},
-		{"Draw Cursor &Guides", FL_COMMAND+'g', OnCmdToggleCursorGuides, NULL, FL_MENU_TOGGLE},
-		{"&Hide Selection Outline ", FL_COMMAND+'h', OnCmdToggleHideSelOutlines, NULL, FL_MENU_TOGGLE|FL_MENU_DIVIDER},
-		{"Zoom O&ut", FL_KP+'-', OnCmdZoom, (void*)-1},
-		{"Zoom &In", FL_KP+'+', OnCmdZoom, (void*)1, FL_MENU_DIVIDER},
-		{"About...", 0, OnCmdAbout},
-		{ 0 },
+	{"&View", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0},
+		{"&Outlines Only", FL_COMMAND+'1', OnCmdDisplayMode, (void*)DM_OUTLINES, FL_MENU_RADIO|FL_MENU_VALUE, 0, 0, 0, 0},
+		{"Fill &Selection", FL_COMMAND+'2', OnCmdDisplayMode, (void*)DM_FILLSEL, FL_MENU_RADIO, 0, 0, 0, 0},
+		{"Fill &All", FL_COMMAND+'3', OnCmdDisplayMode, (void*)DM_FILLALL, FL_MENU_RADIO, 0, 0, 0, 0},
+		{"&Dim All", FL_COMMAND+'4', OnCmdDisplayMode, (void*)DM_DIMMED, FL_MENU_RADIO, 0, 0, 0, 0},
+		{"Fade &Unselected", FL_COMMAND+'5', OnCmdDisplayMode, (void*)DM_FADE_NONSEL, FL_MENU_RADIO|FL_MENU_DIVIDER, 0, 0, 0, 0},
+		{"&Thick Lines", FL_COMMAND+'t', OnCmdToggleThickLines, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
+		{"Draw &Labels", FL_COMMAND+'l', OnCmdToggleLabels, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
+		{"&Fill Create Shape", FL_COMMAND+'f', OnCmdToggleFillNewShape, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
+		{"Draw Cursor &Guides", FL_COMMAND+'g', OnCmdToggleCursorGuides, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
+		{"&Hide Selection Outline ", FL_COMMAND+'h', OnCmdToggleHideSelOutlines, NULL, FL_MENU_TOGGLE|FL_MENU_DIVIDER, 0, 0, 0, 0},
+		{"Zoom O&ut", FL_KP+'-', OnCmdZoom, (void*)-1, 0, 0, 0, 0, 0},
+		{"Zoom &In", FL_KP+'+', OnCmdZoom, (void*)1, FL_MENU_DIVIDER, 0, 0, 0, 0},
+		{"About...", 0, OnCmdAbout, NULL, 0, 0, 0, 0, 0},
+		{},
 
 	// hidden entries, only provide app-wide shortcuts
-	{"Prev Page", FL_Page_Up, OnCmdChangePage, (void*)-1, FL_MENU_INVISIBLE},
-	{"Next Page", FL_Page_Down, OnCmdChangePage, (void*)1, FL_MENU_INVISIBLE},
+	{"Prev Page", FL_Page_Up, OnCmdChangePage, (void*)-1, FL_MENU_INVISIBLE, 0, 0, 0, 0},
+	{"Next Page", FL_Page_Down, OnCmdChangePage, (void*)1, FL_MENU_INVISIBLE, 0, 0, 0, 0},
 
-	{ 0 }
+	{}
 };
 
 

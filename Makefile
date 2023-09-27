@@ -14,9 +14,13 @@ CXX = $(TARGET)-g++
 LD = $(TARGET)-g++
 endif
 
-CXXFLAGS_ALL = -O2 -Wall -Wno-unused-result -Wno-format-security $(CXXFLAGS)
-CPPFLAGS_ALL = -std=gnu++11 $(CPPFLAGS)
+CXXFLAGS_ALL = -O2 $(CXXFLAGS)
+CPPFLAGS_ALL = -std=gnu++11 -Wall -Wextra $(CPPFLAGS)
 LDFLAGS_ALL = $(LDFLAGS)
+
+ifeq ($(TARGET_OS),Windows_NT)
+	CPPFLAGS += -Wno-cast-function-type -Wno-unused
+endif
 
 LIBS = -lfltk -lfltk_images
 
@@ -42,6 +46,8 @@ ifneq ($(CUSTOM_FLTK),)
 	OBJS += $(objdir)/Fl_Copy_Surface.o \
 			$(objdir)/Fl_Image_Surface.o
 endif
+
+.PHONY: all install clean
 
 all: $(objdir) DarkMapGen$(BINEXT)
 
