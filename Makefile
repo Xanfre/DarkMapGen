@@ -8,10 +8,8 @@ LICDIR = $(PREFIX)/share/licenses/DarkMapGen
 TARGET ?=
 ifeq ($(TARGET),)
 CXX ?= g++
-LD ?= g++
 else
 CXX = $(TARGET)-g++
-LD = $(TARGET)-g++
 endif
 
 CXXFLAGS_ALL = -O2 $(CXXFLAGS)
