@@ -70,5 +70,10 @@ $(objdir)/%.o: %.cxx
 $(objdir)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS_ALL) $(CPPFLAGS_ALL) -c -o $@ $<
 
+$(objdir)/Fl_Cursor_Shape.o: Fl_Cursor_Shape.H
+$(objdir)/mapgen.o: Fl_Cursor_Shape.H Fl_Image_Surface.H Fl_Copy_Surface.H png.h
+$(objdir)/Fl_Copy_Surface.o: Fl_Copy_Surface.H
+$(objdir)/Fl_Image_Surface.o: Fl_Image_Surface.H Fl_Copy_Surface.H
+
 DarkMapGen$(BINEXT): $(OBJS)
 	$(CXX) $(CXXFLAGS_ALL) $(LDFLAGS_ALL) $^ -o $@ $(LIBS)
