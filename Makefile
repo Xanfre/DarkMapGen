@@ -71,7 +71,7 @@ $(objdir)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS_ALL) $(CPPFLAGS_ALL) -c -o $@ $<
 
 $(objdir)/Fl_Cursor_Shape.o: Fl_Cursor_Shape.H
-$(objdir)/mapgen.o: Fl_Cursor_Shape.H Fl_Image_Surface.H Fl_Copy_Surface.H png.h
+$(objdir)/mapgen.o: Fl_Cursor_Shape.H Fl_Image_Surface.H Fl_Copy_Surface.H png.h dmg_std.ptr dmg_move.ptr dmg_add.ptr dmg_del.ptr dmg_adddel.ptr dmg_sel.ptr dmg_lblpos.ptr dmg_pan.ptr dark_cmap.h
 $(objdir)/Fl_Copy_Surface.o: Fl_Copy_Surface.H
 $(objdir)/Fl_Image_Surface.o: Fl_Image_Surface.H Fl_Copy_Surface.H
 
