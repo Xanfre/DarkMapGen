@@ -738,7 +738,12 @@ struct sMap
 		locs[iArrayIndex].~sLocation();
 
 		if (iArrayIndex < iLocationCount-1)
-			memmove((void*)(locs + iArrayIndex), locs + iArrayIndex + 1, sizeof(locs[0]) * (iLocationCount - iArrayIndex - 1));
+#if __cplusplus >= 201103L
+			for (int i=iArrayIndex; i<iLocationCount-iArrayIndex-1; i++)
+				locs[i] = locs[i+1];
+#else
+			memmove(locs + iArrayIndex, locs + iArrayIndex + 1, sizeof(locs[0]) * (iLocationCount - iArrayIndex - 1));
+#endif
 
 		iLocationCount--;
 
