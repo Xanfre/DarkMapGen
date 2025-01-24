@@ -13,26 +13,24 @@ CXX = $(TARGET)-g++
 endif
 
 CXXFLAGS_ALL = -O2 $(CXXFLAGS)
-CPPFLAGS_ALL = -std=gnu++11 -Wall -Wextra $(CPPFLAGS)
-LDFLAGS_ALL = $(LDFLAGS)
+CPPFLAGS_ALL = -std=gnu++11 -Wall -Wextra -Wno-unused $(CPPFLAGS)
 
-ifeq ($(TARGET_OS),Windows_NT)
-	CPPFLAGS += -Wno-cast-function-type -Wno-unused
+ifeq ($(STATIC),)
+	LDFLAGS_FLTK = $(shell fltk-config --use-images --ldflags)
+else
+	LDFLAGS_FLTK = $(shell fltk-config --use-images --ldstaticflags)
 endif
 
-LIBS = -lfltk -lfltk_images
+LDFLAGS_ALL = $(LDFLAGS_FLTK) $(LDFLAGS)
+
+ifeq ($(TARGET_OS),Windows_NT)
+	CPPFLAGS += -Wno-cast-function-type
+endif
 
 TARGET_OS ?= $(OS)
 ifeq ($(TARGET_OS),Windows_NT)
-	LIBS += -lfltk_png -lz
-ifeq ($(STATIC),)
-	LIBS += -luuid -lgdi32
-else
-	LIBS += -lole32 -luuid -lcomctl32 -lgdi32 -static
-endif
 	BINEXT = .exe
 else
-	LIBS += -lpng -lz -lX11
 	BINEXT =
 endif
 
@@ -76,4 +74,4 @@ $(objdir)/Fl_Copy_Surface.o: Fl_Copy_Surface.H
 $(objdir)/Fl_Image_Surface.o: Fl_Image_Surface.H Fl_Copy_Surface.H
 
 DarkMapGen$(BINEXT): $(OBJS)
-	$(CXX) $(CXXFLAGS_ALL) $(LDFLAGS_ALL) $^ -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS_ALL) $^ -o $@ $(LDFLAGS_ALL)

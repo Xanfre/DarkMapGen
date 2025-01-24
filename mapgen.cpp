@@ -12,13 +12,16 @@
  * License along with DarkMapGen.
  */
 
+#include <string.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <math.h>
+#if __cplusplus >= 201103L
+#include <stdint.h>
+#endif
 #ifdef _WIN32
-#include <string.h>
 #include <direct.h>
 #else
-#include <string>
 #include <unistd.h>
 #define stricmp strcasecmp
 #define _copysign copysign
@@ -26,11 +29,6 @@
 #define _getcwd getcwd
 #define _chdir chdir
 #define MAX_PATH PATH_MAX
-#endif
-#ifdef _MSC_VER
-#include <stddef.h>
-#else
-#include <cstdint>
 #endif
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
@@ -68,12 +66,9 @@
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
 typedef unsigned int UINT;
-typedef unsigned int BOOL;
+typedef int BOOL;
 #define FALSE 0
 #define TRUE 1
-#define B_UNSET 2
-#else
-#define B_UNSET -1
 #endif
 
 /////////////////////////////////////////////////////////////////////
@@ -130,8 +125,6 @@ typedef unsigned int BOOL;
 // get location array element index from tree id (-1 if invalid)
 #define LOC_FROM_TREE_ID(_treeid) \
 	(MAP_FROM_TREE_ID(_treeid) < 0) ? -1 : g_pProj->maps[MAP_FROM_TREE_ID(_treeid)].GetArrayIndexFromLocationIndex(LOCIDX_FROM_TREE_ID(_treeid))
-
-#define SCALE(_x) _x * g_iScale / 4
 
 #if defined(__unix__) || defined(__UNIX__)
 // work around bug in X11
@@ -738,12 +731,8 @@ struct sMap
 		locs[iArrayIndex].~sLocation();
 
 		if (iArrayIndex < iLocationCount-1)
-#if __cplusplus >= 201103L
 			for (int i=iArrayIndex; i<iLocationCount-iArrayIndex-1; i++)
 				locs[i] = locs[i+1];
-#else
-			memmove(locs + iArrayIndex, locs + iArrayIndex + 1, sizeof(locs[0]) * (iLocationCount - iArrayIndex - 1));
-#endif
 
 		iLocationCount--;
 
@@ -1001,11 +990,6 @@ static BOOL g_bShockMaps = FALSE;
 
 static int g_iLocationImageExtraBorder = 0;
 static int g_iAlphaExportAA = 4;
-#ifdef DEF_SCALE
-static int g_iScale = DEF_SCALE + 3;
-#else
-static int g_iScale = 4;
-#endif
 
 static sProject *g_pProj = NULL;
 static int g_iZoom = 2;
@@ -2495,7 +2479,7 @@ static BOOL LoadProject(const char *sDir)
 	if (g_pProj)
 		delete g_pProj;
 
-	if (g_bShockMaps == B_UNSET)
+	if (g_bShockMaps == -1)
 	{
 		// auto-detect shock/thief mode
 		g_bShockMaps = FALSE;
@@ -3967,25 +3951,25 @@ static void MakeWindow(int W, int H)
 {
 	if (W <= 0 || H <= 0)
 	{
-		W = SCALE(800);
-		H = SCALE(507);
+		W = 800;
+		H = 507;
 	}
 
 	g_pMainWnd = new cMainWindow(W, H, DARKMAPGEN_TITLE);
 	g_pMainWnd->end();
 
-    g_pMenuBar = new Fl_Menu_Bar(0, 0, W, SCALE(25));
+    g_pMenuBar = new Fl_Menu_Bar(0, 0, W, 25);
 	g_pMainWnd->add(g_pMenuBar);
 
-	g_pScrollView = new Fl_Scroll(0, SCALE(25), W-SCALE(160), H-SCALE(27));
+	g_pScrollView = new Fl_Scroll(0, 25, W-160, H-27);
 	g_pScrollView->end();
 	g_pMainWnd->add(g_pScrollView);
 	g_pScrollView->box(FL_FLAT_BOX);
 
-	g_pImageView = new cImageView(0, SCALE(25), W-SCALE(160), H-SCALE(27));
+	g_pImageView = new cImageView(0, 25, W-160, H-27);
 	g_pScrollView->add(g_pImageView);
 
-    g_pTreeView = new Fl_Tree_Ex(W-SCALE(160), SCALE(25), SCALE(160), H-SCALE(27));
+    g_pTreeView = new Fl_Tree_Ex(W-160, 25, 160, H-27);
 	g_pMainWnd->add(g_pTreeView);
 	g_pTreeView->color(FL_LIGHT3);
 	g_pTreeView->selectmode(FL_TREE_SELECT_SINGLE);
@@ -4006,7 +3990,7 @@ static void MakeWindow(int W, int H)
 	g_iWplus = g_pMainWnd->w() - g_pScrollView->w();
 	g_iHplus = g_pMainWnd->h() - g_pScrollView->h();
 
-	g_pMainWnd->size_range(SCALE(320) + g_iWplus, SCALE(240) + g_iHplus, 0, 0);
+	g_pMainWnd->size_range(320 + g_iWplus, 240 + g_iHplus, 0, 0);
 
 	InitCursors();
 }
@@ -4102,7 +4086,7 @@ static void OnPrepareFlMessageBox(Fl_Window *w, void*)
 }
 #endif
 
-static void InitFLTK(const char *lpszFlTheme, int iFontSize)
+static void InitFLTK(const char *lpszFlTheme)
 {
 #ifdef CUSTOM_FLTK
 	// set custom pre-show callback for fl message boxes so that we can center them to the dialog instead of mouse
@@ -4127,19 +4111,8 @@ static void InitFLTK(const char *lpszFlTheme, int iFontSize)
 	else
 		Fl::scheme(lpszFlTheme);
 
-	int MAX_S = max(SCALE(14), 18);
-
-	if (iFontSize < 8)
-		iFontSize = 8;
-	else if (iFontSize > MAX_S)
-		iFontSize = MAX_S;
-
-	FL_NORMAL_SIZE = iFontSize;
-	fl_message_font(FL_HELVETICA, FL_NORMAL_SIZE);
 	fl_message_icon()->box(FL_FLAT_BOX);
 	fl_message_icon()->color(FL_GRAY0+20);
-
-	Fl_Tooltip::size(FL_NORMAL_SIZE);
 }
 
 static BOOL HasCommandLineOption(int argc, char **argv, const char *lpszOption)
@@ -4191,7 +4164,6 @@ static void InvokeShortcutFLTK(int key)
 int main(int argc, char **argv)
 {
 	BOOL bUseCurrentDir = FALSE;
-	BOOL bSetFontSize = FALSE;
 #ifdef DEF_THEME
 #define DEF_THEME_S(s) DEF_THEME_S_(s)
 #define DEF_THEME_S_(s) #s
@@ -4201,10 +4173,9 @@ int main(int argc, char **argv)
 #else
 	const char *lpszFlTheme = "gtk+";
 #endif
-	int iFontSize = 14;
 	int w = -1, h = -1;
 
-	g_bShockMaps = B_UNSET;
+	g_bShockMaps = -1;
 
 	if (argc > 1)
 	{
@@ -4213,8 +4184,6 @@ int main(int argc, char **argv)
 		else if ( HasCommandLineOption(argc, argv, "-shock") )
 			g_bShockMaps = TRUE;
 		bUseCurrentDir = HasCommandLineOption(argc, argv, "-cwd");
-		if ( GetCommandLineInt(argc, argv, "-fontsize", iFontSize) )
-			bSetFontSize = TRUE;
 		g_bHideSelectedOutline = HasCommandLineOption(argc, argv, "-hidelines");
 
 		if ( GetCommandLineInt(argc, argv, "-zoom", g_iZoom) )
@@ -4237,17 +4206,6 @@ int main(int argc, char **argv)
 				g_iAlphaExportAA = 8;
 		}
 
-		if ( GetCommandLineInt(argc, argv, "-scale", g_iScale) )
-		{
-			g_iScale += 3;
-			if (g_iScale < 4)
-				g_iScale = 4;
-			else if (g_iScale > 8)
-				g_iScale = 8;
-			if (!bSetFontSize)
-				iFontSize = SCALE(iFontSize);
-		}
-
 #ifdef DEF_THEME
 		if ( HasCommandLineOption(argc, argv, "-theme_gtk") )
 			lpszFlTheme = "gtk+";
@@ -4266,17 +4224,17 @@ int main(int argc, char **argv)
 				sscanf(argv[i+1], "%dx%d", &w, &h);
 				if (h > 0)
 				{
-					if (w < SCALE(320) + g_iWplus)
-						w = SCALE(320) + g_iWplus;
-					if (h < SCALE(240) + g_iHplus)
-						h = SCALE(240) + g_iHplus;
+					if (w < 320 + g_iWplus)
+						w = 320 + g_iWplus;
+					if (h < 240 + g_iHplus)
+						h = 240 + g_iHplus;
 
 					g_bUserDefinedWindowSize = TRUE;
 				}
 			}
 	}
 
-	InitFLTK(lpszFlTheme, iFontSize);
+	InitFLTK(lpszFlTheme);
 
     MakeWindow(w, h);
 
@@ -4291,17 +4249,12 @@ int main(int argc, char **argv)
 	{
 		if (!bUseCurrentDir)
 		{
-			BOOL bChangeFont = iFontSize > 18;
-			if (bChangeFont)
-				FL_NORMAL_SIZE = 18;
 			char *sDir = fl_dir_chooser("Select Map Directory", NULL, 0);
 			if (!sDir)
 			{
 				delete g_pMainWnd;
 				return 0;
 			}
-			if (bChangeFont)
-				FL_NORMAL_SIZE = iFontSize;
 
 			_chdir(sDir);
 		}
@@ -4314,8 +4267,6 @@ int main(int argc, char **argv)
 			fl_alert("No map pages found. Make sure that the working directory contains properly named map page images as PNG.");
 			return 0;
 		}
-
-		Fl::scrollbar_size(SCALE(Fl::scrollbar_size()));
 
 		InitControls();
 

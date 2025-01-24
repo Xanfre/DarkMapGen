@@ -129,8 +129,6 @@ Command-line options
    -theme_dark      : use the 'GTK+' UI theme with dark colors
    -theme_plastic   : use the 'Plastic' UI theme
    -theme_base      : use the basic UI theme
-   -fontsize <n>    : custom font size for UI and labels, a value between 8 and 18 (default is 14)
-   -scale <n>       : custom scale for the main window (1=1x, 2=1.25x, 3=1.5x, 4=1.75x, 5=2x)
    -winsize <W>x<H> : custom window size at start-up
    -viewmode <n>    : set initial display mode (1=outlines, 2=fill sel, 3=fill all, 4=dim all, 5=fade unsel)
    -zoom <n>        : set initial zoom level (1 to 6)
