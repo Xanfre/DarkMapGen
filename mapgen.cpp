@@ -21,6 +21,7 @@
 #endif
 #ifdef _WIN32
 #include <direct.h>
+#include <windef.h>
 #else
 #include <unistd.h>
 #define stricmp strcasecmp
@@ -40,7 +41,6 @@
 #include <FL/fl_ask.H>
 #include <FL/Fl_Tooltip.H>
 #include <FL/Fl_File_Chooser.H> 
-#include "Fl_Cursor_Shape.H"
 #ifdef CUSTOM_FLTK
 #include "Fl_Image_Surface.H"
 #include "png.h"
@@ -171,22 +171,7 @@ static BOOL ChangeZoom(int n);
 
 /////////////////////////////////////////////////////////////////////
 
-#include "dmg_std.ptr"
-#include "dmg_move.ptr"
-#include "dmg_add.ptr"
-#include "dmg_del.ptr"
-#include "dmg_adddel.ptr"
-#include "dmg_sel.ptr"
-#include "dmg_lblpos.ptr"
-#include "dmg_pan.ptr"
-
-static Fl_Cursor_Shape g_cursStd;
-static Fl_Cursor_Shape g_cursMove;
-static Fl_Cursor_Shape g_cursAdd;
-static Fl_Cursor_Shape g_cursDel;
-static Fl_Cursor_Shape g_cursAddDel;
-static Fl_Cursor_Shape g_cursLblPos;
-static Fl_Cursor_Shape g_cursPan;
+#include "dmg_curs.h"
 
 enum
 {
@@ -198,18 +183,6 @@ enum
 	DMG_CURS_LABELPOS,
 	DMG_CURS_PAN,
 };
-
-static void InitCursors()
-{
-	g_cursStd.shape(dmg_std_hotX, dmg_std_hotY, dmg_std_and, dmg_std_xor);
-	g_cursMove.shape(dmg_move_hotX, dmg_move_hotY, dmg_move_and, dmg_move_xor);
-	g_cursAdd.shape(dmg_add_hotX, dmg_add_hotY, dmg_add_and, dmg_add_xor);
-	g_cursDel.shape(dmg_del_hotX, dmg_del_hotY, dmg_del_and, dmg_del_xor);
-	g_cursAddDel.shape(dmg_adddel_hotX, dmg_adddel_hotY, dmg_adddel_and, dmg_adddel_xor);
-	g_cursLblPos.shape(dmg_lblpos_hotX, dmg_lblpos_hotY, dmg_lblpos_and, dmg_lblpos_xor);
-	g_cursPan.shape(dmg_pan_hotX, dmg_pan_hotY, dmg_pan_and, dmg_pan_xor);
-}
-
 
 /////////////////////////////////////////////////////////////////////
 
@@ -1078,17 +1051,29 @@ public:
 		if (g_pImageView != Fl::belowmouse())
 			return;
 
+		const char **xpm = NULL;
+
 		switch (n)
 		{
-		case -1: fl_cursor(FL_CURSOR_DEFAULT); break;
-		case DMG_CURS_STD: fl_cursor(&g_cursStd); break;
-		case DMG_CURS_MOVE: fl_cursor(&g_cursMove); break;
-		case DMG_CURS_ADD: fl_cursor(&g_cursAdd); break;
-		case DMG_CURS_DEL: fl_cursor(&g_cursDel); break;
-		case DMG_CURS_ADDDEL: fl_cursor(&g_cursAddDel); break;
-		case DMG_CURS_LABELPOS: fl_cursor(&g_cursLblPos); break;
-		case DMG_CURS_PAN: fl_cursor(&g_cursPan); break;
+		case DMG_CURS_STD: xpm = dmg_std_xpm; break;
+		case DMG_CURS_MOVE: xpm = dmg_move_xpm; break;
+		case DMG_CURS_ADD: xpm = dmg_add_xpm; break;
+		case DMG_CURS_DEL: xpm = dmg_del_xpm; break;
+		case DMG_CURS_ADDDEL: xpm = dmg_adddel_xpm; break;
+		case DMG_CURS_LABELPOS: xpm = dmg_lblpos_xpm; break;
+		case DMG_CURS_PAN: xpm = dmg_pan_xpm; break;
 		}
+
+		Fl_Window *w = Fl::first_window();
+		if (w && xpm)
+		{
+			Fl_Pixmap pxm(xpm);
+			Fl_RGB_Image image(&pxm);
+
+			w->cursor(&image, 0, 0);
+		}
+		else
+			fl_cursor(FL_CURSOR_DEFAULT);
 	}
 
 	void UpdateEditMode()
@@ -3854,7 +3839,6 @@ static void OnCmdAbout(Fl_Widget*, void*)
 		"This program uses:\n"
 		"\n"
 		"    FLTK (fltk.org)\n"
-		"    Fl_Cursor_Shape for FLTK by Matthias Melcher\n"
 		);
 	ResetMouse();
 }
@@ -3991,8 +3975,6 @@ static void MakeWindow(int W, int H)
 	g_iHplus = g_pMainWnd->h() - g_pScrollView->h();
 
 	g_pMainWnd->size_range(320 + g_iWplus, 240 + g_iHplus, 0, 0);
-
-	InitCursors();
 }
 
 
