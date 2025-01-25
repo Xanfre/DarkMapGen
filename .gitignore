@@ -1,4 +1,8 @@
 DarkMapGen
 DarkMapGen.exe
 Release
+Debug
 objs
+fltk
+libpng
+zlib
