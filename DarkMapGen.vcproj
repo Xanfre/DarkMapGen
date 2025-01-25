@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="fltk"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DARKMAPGEN_EXPORTS;_CRT_SECURE_NO_WARNINGS;_BIND_TO_CURRENT_VCLIBS_VERSION=1;CUSTOM_FLTK=1"
+				AdditionalIncludeDirectories="fltk;zlib;libpng"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DARKMAPGEN_EXPORTS;_CRT_SECURE_NO_WARNINGS;_BIND_TO_CURRENT_VCLIBS_VERSION=1"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="fltk.lib fltkimages.lib fltkpng.lib zlib.lib"
+				AdditionalDependencies="fltk.lib fltk_images.lib fltk_png.lib fltk_z.lib zlibstatic.lib libpng16_static.lib gdiplus.lib comctl32.lib ws2_32.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="fltk\lib"
+				AdditionalLibraryDirectories="fltk\lib;zlib\lib;libpng\lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -118,8 +118,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="fltk"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DARKMAPGEN_EXPORTS;_CRT_SECURE_NO_WARNINGS;_BIND_TO_CURRENT_VCLIBS_VERSION=1;CUSTOM_FLTK=1"
+				AdditionalIncludeDirectories="fltk;zlib;libpng"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DARKMAPGEN_EXPORTS;_CRT_SECURE_NO_WARNINGS;_BIND_TO_CURRENT_VCLIBS_VERSION=1"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -137,9 +137,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="fltk.lib fltkimages.lib fltkpng.lib zlib.lib"
+				AdditionalDependencies="fltk.lib fltk_images.lib fltk_png.lib fltk_z.lib zlibstatic.lib libpng16_static.lib gdiplus.lib comctl32.lib ws2_32.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="fltk\lib"
+				AdditionalLibraryDirectories="fltk\lib;zlib\lib;libpng\lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -178,14 +178,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Fl_Copy_Surface.cxx"
-				>
-			</File>
-			<File
-				RelativePath=".\Fl_Image_Surface.cxx"
-				>
-			</File>
-			<File
 				RelativePath=".\mapgen.cpp"
 				>
 			</File>
@@ -195,26 +187,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\Fl_Copy_Surface.H"
-				>
-			</File>
-			<File
-				RelativePath=".\Fl_Image_Surface.H"
-				>
-			</File>
-			<File
-				RelativePath=".\png.h"
-				>
-			</File>
-			<File
-				RelativePath=".\pngconf.h"
-				>
-			</File>
-			<File
-				RelativePath=".\pnglibconf.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

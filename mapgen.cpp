@@ -12,16 +12,20 @@
  * License along with DarkMapGen.
  */
 
-#include <string.h>
 #include <ctype.h>
-#include <stdio.h>
 #include <math.h>
 #if __cplusplus >= 201103L
 #include <stdint.h>
 #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef _WIN32
 #include <direct.h>
-#include <windef.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 #else
 #include <unistd.h>
 #define stricmp strcasecmp
@@ -43,10 +47,6 @@
 #include <FL/Fl_File_Chooser.H> 
 #include <FL/Fl_Image_Surface.H>
 #include <png.h>
-#ifdef __GNUC__
-#define min(a,b) (((a)<(b))?(a):(b))
-#define max(a,b) (((a)>(b))?(a):(b))
-#endif
 
 
 /////////////////////////////////////////////////////////////////////
@@ -64,6 +64,12 @@ typedef unsigned int UINT;
 typedef int BOOL;
 #define FALSE 0
 #define TRUE 1
+#endif
+#ifndef min
+#define min(a,b) (((a)<(b))?(a):(b))
+#endif
+#ifndef max
+#define max(a,b) (((a)>(b))?(a):(b))
 #endif
 
 /////////////////////////////////////////////////////////////////////
@@ -1866,9 +1872,7 @@ found_edge:;
 			fl_line_style(FL_DASH, 0);
 			fl_line(dx, dy + Y, dx + w(), dy + Y);
 			fl_line(dx + X, dy, dx + X, dy + h());
-#ifndef _WIN32
 			fl_line_style(0);
-#endif
 		}
 
 		// draw in-progress shape
@@ -1909,9 +1913,7 @@ found_edge:;
 					const int Yfirst = dy + MAP2CL(m_newShape.verts[0].y);
 					fl_line(dx+m_iMousePosSnapped[0], dy+m_iMousePosSnapped[1], Xfirst, Yfirst);
 				}
-#ifndef _WIN32
 				fl_line_style(0);
-#endif
 			}
 		}
 
@@ -2047,9 +2049,7 @@ found_edge:;
 						fl_color(linecolor);
 						fl_line_style(FL_DOT, g_iLineWidth);
 						fl_line(Xprev, Yprev, X, Y);
-#ifndef _WIN32
 						fl_line_style(0);
-#endif
 					}
 
 					Xprev = X;
@@ -3867,6 +3867,7 @@ static void OnCmdAbout(Fl_Widget*, void*)
 		"This program uses:\n"
 		"\n"
 		"    FLTK (fltk.org)\n"
+		"    libpng (libpng.org)\n"
 		);
 	ResetMouse();
 }
@@ -3991,11 +3992,7 @@ static void MakeWindow(int W, int H)
 	g_pTreeView->callback(OnTreeSelChange);
 	g_pTreeView->marginleft(0);
 
-#ifdef _WIN32
-    g_pMainWnd->resizable(NULL);
-#else
     g_pMainWnd->resizable(g_pScrollView);
-#endif
 	g_pMainWnd->callback(OnMainWndClose);
 
 	// get number of pixels to add to g_pScrollView to get the window size
