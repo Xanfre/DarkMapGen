@@ -41,13 +41,8 @@
 #include <FL/fl_ask.H>
 #include <FL/Fl_Tooltip.H>
 #include <FL/Fl_File_Chooser.H> 
-#ifdef CUSTOM_FLTK
-#include "Fl_Image_Surface.H"
-#include "png.h"
-#else
 #include <FL/Fl_Image_Surface.H>
 #include <png.h>
-#endif
 #ifdef __GNUC__
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
@@ -896,6 +891,9 @@ struct sProject
 		FILE *f = fopen(s, "w");
 		if (!f)
 		{
+			Fl_Window *w = Fl::first_window();
+			if (w)
+				fl_message_position(w);
 			fl_alert("Failed to open project file \"%s\" for saving", s);
 			return FALSE;
 		}
@@ -2500,6 +2498,7 @@ static BOOL LoadProject(const char *sDir)
 		if (img->d() != 3 && img->d() != 4)
 		{
 			// will probably never happen, Fl_PNG_Image should load-convert to true-color
+			fl_message_position(g_pMainWnd);
 			fl_alert("Failed to load image \"%s\", not a 24- or 32-bit image", s);
 			delete img;
 			continue;
@@ -2519,6 +2518,7 @@ static BOOL LoadProject(const char *sDir)
 			if (imgHi->d() != 3 && imgHi->d() != 4)
 			{
 				// will probably never happen, Fl_PNG_Image should load-convert to true-color
+				fl_message_position(g_pMainWnd);
 				fl_alert("Failed to load image \"%s\", not a 24- or 32-bit image", s2);
 				delete img;
 				delete imgHi;
@@ -2527,6 +2527,7 @@ static BOOL LoadProject(const char *sDir)
 			if (imgHi->w() != img->w() || imgHi->h() != img->h())
 			{
 				// will probably never happen, Fl_PNG_Image should load-convert to true-color
+				fl_message_position(g_pMainWnd);
 				fl_alert("Failed to load map, image \"%s\" and \"%s\" are not the same size", s, s2);
 				delete img;
 				delete imgHi;
@@ -2982,6 +2983,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 		if (!f)
 		{
 			fl_cursor(FL_CURSOR_DEFAULT);
+			fl_message_position(g_pMainWnd);
 			fl_alert("Failed to save rects file \"%s\"", s);
 			fl_cursor(FL_CURSOR_WAIT);
 			bErrors = TRUE;
@@ -2995,6 +2997,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 			if (!f2)
 			{
 				fl_cursor(FL_CURSOR_DEFAULT);
+				fl_message_position(g_pMainWnd);
 				fl_alert("Failed to save rects file \"%s\"", s);
 				fl_cursor(FL_CURSOR_WAIT);
 				bErrors = TRUE;
@@ -3034,6 +3037,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 					if ( !SaveImg32(img, s, bSaveTGA) )
 					{
 						fl_cursor(FL_CURSOR_DEFAULT);
+						fl_message_position(g_pMainWnd);
 						fl_alert("Failed to save location image \"%s\"", s);
 						fl_cursor(FL_CURSOR_WAIT);
 						delete img;
@@ -3047,6 +3051,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 						if (!imgHi)
 						{
 							fl_cursor(FL_CURSOR_DEFAULT);
+							fl_message_position(g_pMainWnd);
 							fl_alert("Failed to generate location hilight image %03d on PAG%03d", loc.iLocationIndex, i);
 							fl_cursor(FL_CURSOR_WAIT);
 							bErrors = TRUE;
@@ -3059,6 +3064,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 						if ( !SaveImg32(imgHi, s, bSaveTGA) )
 						{
 							fl_cursor(FL_CURSOR_DEFAULT);
+							fl_message_position(g_pMainWnd);
 							fl_alert("Failed to save location image \"%s\"", s);
 							fl_cursor(FL_CURSOR_WAIT);
 							delete img;
@@ -3086,6 +3092,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 			else
 			{
 				fl_cursor(FL_CURSOR_DEFAULT);
+				fl_message_position(g_pMainWnd);
 				fl_alert("Failed to generate location image %03d on PAGE%03d", loc.iLocationIndex, i);
 				fl_cursor(FL_CURSOR_WAIT);
 				bErrors = TRUE;
@@ -3100,6 +3107,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 	}
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 
 	if (bErrors)
 		fl_alert("Errors occurred, generated files are incomplete");
@@ -3228,6 +3236,8 @@ static const char* fl_input_ex(const char *label, char *deflt)
 {
 	g_bShowingFlInputDialog = TRUE;
 
+	fl_message_position(g_pMainWnd);
+
 	const char *ret = fl_input("%s", label, deflt);
 
 	g_bShowingFlInputDialog = FALSE;
@@ -3304,6 +3314,7 @@ static void OnMainWndClose(Fl_Widget*, void*)
 		return;
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 	if (!g_pProj->bModified || !fl_choice("Any unsaved changes will be lost. Exit?", "Yes", "No", NULL))
 		g_pMainWnd->hide();
 	else
@@ -3327,6 +3338,7 @@ static void OnCmdGenerateFiles(Fl_Widget*, void*)
 			goto has_locations;
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 	fl_message("No locations have been defined, nothing to generate.");
 	ResetMouse();
 	return;
@@ -3334,6 +3346,7 @@ static void OnCmdGenerateFiles(Fl_Widget*, void*)
 has_locations:
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 	int res = fl_choice("Generate files for all map locations.\nExisting files will be overwritten. Proceed?", "Cancel", "OK", "Generate as TGA");
 	ResetMouse();
 	if (!res)
@@ -3356,6 +3369,7 @@ static void OnCmdGenerateSelected(Fl_Widget*, void*)
 	int res;
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 
 	if (iLoc < 0)
 	{
@@ -3400,11 +3414,15 @@ static void OnCmdDelete(Fl_Widget*, void*)
 			return;
 
 		fl_cursor(FL_CURSOR_DEFAULT);
-		if ( !fl_choice("Delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap)
-			|| !fl_choice("Are you really sure that you want to delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
+		fl_message_position(g_pMainWnd);
+		if ( !fl_choice("Delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap))
 		{
-			ResetMouse();
-			return;
+			fl_message_position(g_pMainWnd);
+			if ( !fl_choice("Are you really sure that you want to delete all locations on PAGE%03d?", "Cancel", "OK", NULL, iMap) )
+			{
+				ResetMouse();
+				return;
+			}
 		}
 
 		g_pProj->maps[iMap].FlushScaledImages();
@@ -3418,6 +3436,7 @@ static void OnCmdDelete(Fl_Widget*, void*)
 	else
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 		if ( !fl_choice("Delete location %03d on PAGE%03d?", "Cancel", "OK", NULL, iLocIndex, iMap) )
 		{
 			ResetMouse();
@@ -3486,6 +3505,7 @@ retry:
 	if (iNewIndex < 0 || iNewIndex > MAX_LOCATIONS_PER_MAP-1)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 		fl_alert("Invalid index, must be a value in the range 0 to %d", MAX_LOCATIONS_PER_MAP-1);
 		goto retry;
 	}
@@ -3497,6 +3517,7 @@ retry:
 	if (pPrevLoc)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 		if ( !fl_choice("Another location with index %03d already exists. Swap indices?", "Cancel", "OK", NULL, iNewIndex) )
 		{
 			ResetMouse();
@@ -3564,6 +3585,7 @@ static void OnCmdMove(Fl_Widget*, void*)
 	if (iLocIndex < 0)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 
 		if (!g_pProj->maps[iMap].iLocationCount)
 		{
@@ -3645,6 +3667,7 @@ static void OnCmdInfo(Fl_Widget*, void *)
 	}
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 	fl_message(
 		"Location %03d on PAGE%03d\n"
 		"\n"
@@ -3663,6 +3686,7 @@ static void OnCmdRecover(Fl_Widget*, void*)
 	if (g_pProj->iMapCount == 0 || g_pProj->maps[g_pProj->iCurMap].iLocationCount > 0)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 		fl_message("PAGE%03d must have no existing locations before attempting recovery", g_pProj->iCurMap);
 		ResetMouse();
 		return;
@@ -3680,6 +3704,7 @@ static void OnCmdRecover(Fl_Widget*, void*)
 	if (!f && g_bShockMaps)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 		fl_alert("Could not locate rects file \"%s\" for recovery", s);
 		fl_cursor(FL_CURSOR_WAIT);
 		sprintf(s, "p%03dxa.bin", g_pProj->iCurMap);
@@ -3688,6 +3713,7 @@ static void OnCmdRecover(Fl_Widget*, void*)
 	if (!f)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
+		fl_message_position(g_pMainWnd);
 		fl_alert("Could not locate rects file \"%s\" for recovery", s);
 		ResetMouse();
 		return;
@@ -3741,6 +3767,7 @@ static void OnCmdRecover(Fl_Widget*, void*)
 	fclose(f);
 
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 
 	if (bErrors)
 		fl_alert("Errors occurred, not all locations could be recovered");
@@ -3830,6 +3857,7 @@ static void OnCmdChangePage(Fl_Widget*, void *p)
 static void OnCmdAbout(Fl_Widget*, void*)
 {
 	fl_cursor(FL_CURSOR_DEFAULT);
+	fl_message_position(g_pMainWnd);
 	fl_message(
 		"DarkMapGen " DARKMAPGEN_VERSION "\n"
 		"\n"
@@ -4032,49 +4060,8 @@ static void ScrollImageTo(int Xzoomed, int Yzoomed)
 }
 
 
-#ifdef CUSTOM_FLTK
-extern Fl_Callback *fl_message_preshow_cb_;
-
-static void OnPrepareFlMessageBox(Fl_Window *w, void*)
-{
-	Fl_Window *parent = Fl::modal();
-	if (!parent)
-		parent = g_pMainWnd;
-	if (!parent)
-		return;
-
-	const int cx = parent->x() + (parent->w()/2);
-	const int cy = parent->y() + (parent->h()/2);
-
-	int x = cx - (w->w()/2);
-	int y = cy - (w->h()/2);
-
-	// neutralize offset caused by mouse in hotspot() (we still use hotspot() so we don't have to deal with the
-	// preventing the window from being off-screen junk)
-	int mx,my;
-	Fl::get_mouse(mx,my);
-	x -= mx;
-	y -= my;
-
-	w->hotspot(-x, -y);
-
-	// UGLY HACK: make the text initally selected in the input box of fl_input dialogs, because FLTK doesn't
-	if (g_bShowingFlInputDialog)
-	{
-		// the second child is an Fl_Input (at least for the currently used FLTK version)
-		Fl_Input *o = (Fl_Input*) w->child(1);
-		o->mark(0);
-	}
-}
-#endif
-
 static void InitFLTK(const char *lpszFlTheme)
 {
-#ifdef CUSTOM_FLTK
-	// set custom pre-show callback for fl message boxes so that we can center them to the dialog instead of mouse
-	fl_message_preshow_cb_ = (Fl_Callback*)OnPrepareFlMessageBox;
-#endif
-
 	Fl::visual(FL_RGB);
 
 	if (*lpszFlTheme == 'd')
@@ -4161,14 +4148,14 @@ int main(int argc, char **argv)
 
 	if (argc > 1)
 	{
-		if ( HasCommandLineOption(argc, argv, "-thief") )
+		if ( HasCommandLineOption(argc, argv, "--thief") )
 			g_bShockMaps = FALSE;
-		else if ( HasCommandLineOption(argc, argv, "-shock") )
+		else if ( HasCommandLineOption(argc, argv, "--shock") )
 			g_bShockMaps = TRUE;
-		bUseCurrentDir = HasCommandLineOption(argc, argv, "-cwd");
-		g_bHideSelectedOutline = HasCommandLineOption(argc, argv, "-hidelines");
+		bUseCurrentDir = HasCommandLineOption(argc, argv, "--cwd");
+		g_bHideSelectedOutline = HasCommandLineOption(argc, argv, "--hidelines");
 
-		if ( GetCommandLineInt(argc, argv, "-zoom", g_iZoom) )
+		if ( GetCommandLineInt(argc, argv, "--zoom", g_iZoom) )
 		{
 				if (g_iZoom < MIN_ZOOM)
 					g_iZoom = MIN_ZOOM;
@@ -4176,11 +4163,11 @@ int main(int argc, char **argv)
 					g_iZoom = MAX_ZOOM;
 		}
 
-		if ( GetCommandLineInt(argc, argv, "-margin", g_iLocationImageExtraBorder) )
+		if ( GetCommandLineInt(argc, argv, "--margin", g_iLocationImageExtraBorder) )
 			if (g_iLocationImageExtraBorder < 0)
 				g_iLocationImageExtraBorder = 0;
 
-		if ( GetCommandLineInt(argc, argv, "-aa", g_iAlphaExportAA) )
+		if ( GetCommandLineInt(argc, argv, "--aa", g_iAlphaExportAA) )
 		{
 			if (g_iAlphaExportAA < 1)
 				g_iAlphaExportAA = 1;
@@ -4189,19 +4176,19 @@ int main(int argc, char **argv)
 		}
 
 #ifdef DEF_THEME
-		if ( HasCommandLineOption(argc, argv, "-theme_gtk") )
+		if ( HasCommandLineOption(argc, argv, "--theme_gtk") )
 			lpszFlTheme = "gtk+";
 		else
 #endif
-		if ( HasCommandLineOption(argc, argv, "-theme_dark") )
+		if ( HasCommandLineOption(argc, argv, "--theme_dark") )
 			lpszFlTheme = "dgtk+";
-		else if ( HasCommandLineOption(argc, argv, "-theme_plastic") )
+		else if ( HasCommandLineOption(argc, argv, "--theme_plastic") )
 			lpszFlTheme = "plastic";
-		else if ( HasCommandLineOption(argc, argv, "-theme_base") )
+		else if ( HasCommandLineOption(argc, argv, "--theme_base") )
 			lpszFlTheme = "base";
 
 		for (int i=1; i<argc; i++)
-			if (!stricmp(argv[i], "-winsize") && argc > i+1)
+			if (!stricmp(argv[i], "--winsize") && argc > i+1)
 			{
 				sscanf(argv[i+1], "%dx%d", &w, &h);
 				if (h > 0)
@@ -4259,15 +4246,15 @@ int main(int argc, char **argv)
 		{
 			int i;
 
-			if (GetCommandLineInt(argc, argv, "-viewmode", i) && i >= 1 && i < DM_NUM_MODES)
+			if (GetCommandLineInt(argc, argv, "--viewmode", i) && i >= 1 && i < DM_NUM_MODES)
 				InvokeShortcutFLTK(FL_COMMAND+'1'+(i-1));
-			if ( HasCommandLineOption(argc, argv, "-thicklines") )
+			if ( HasCommandLineOption(argc, argv, "--thicklines") )
 				InvokeShortcutFLTK(FL_COMMAND+'t');
-			if ( HasCommandLineOption(argc, argv, "-labels") )
+			if ( HasCommandLineOption(argc, argv, "--labels") )
 				InvokeShortcutFLTK(FL_COMMAND+'l');
-			if ( HasCommandLineOption(argc, argv, "-cguides") )
+			if ( HasCommandLineOption(argc, argv, "--cguides") )
 				InvokeShortcutFLTK(FL_COMMAND+'g');
-			if ( HasCommandLineOption(argc, argv, "-fillnew") )
+			if ( HasCommandLineOption(argc, argv, "--fillnew") )
 				InvokeShortcutFLTK(FL_COMMAND+'f');
 		}
 

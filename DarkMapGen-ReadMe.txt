@@ -122,24 +122,24 @@ The generated location images will in the form of "P001Rxxx.PNG" and ""P001Xxxx.
 Command-line options
 --------------------
 
-   -thief           : run in Thief mode without auto-detection
-   -shock           : run in System Shock 2 mode without auto-detection
-   -cwd             : use current working directory instead of prompting user
-   -theme_gtk       : use the 'GTK+' UI theme (only available if another default theme is set)
-   -theme_dark      : use the 'GTK+' UI theme with dark colors
-   -theme_plastic   : use the 'Plastic' UI theme
-   -theme_base      : use the basic UI theme
-   -winsize <W>x<H> : custom window size at start-up
-   -viewmode <n>    : set initial display mode (1=outlines, 2=fill sel, 3=fill all, 4=dim all, 5=fade unsel)
-   -zoom <n>        : set initial zoom level (1 to 6)
-   -labels          : enable draw labels
-   -cguides         : enable draw cursor guides
-   -fillnew         : enable fill create-shape
-   -thicklines      : enable thick lines
-   -hidelines       : hide outlines of selected locations
-   -margin <n>      : number of pixels to pad borders of generated location images (default is 0)
-   -aa <n>          : anti-aliasing level used when creating the alpha mask for location images, a value
-                      between 1 and 8 (default is 4)
+   --thief           : run in Thief mode without auto-detection
+   --shock           : run in System Shock 2 mode without auto-detection
+   --cwd             : use current working directory instead of prompting user
+   --theme_gtk       : use the 'GTK+' UI theme (only available if another default theme is set)
+   --theme_dark      : use the 'GTK+' UI theme with dark colors
+   --theme_plastic   : use the 'Plastic' UI theme
+   --theme_base      : use the basic UI theme
+   --winsize <W>x<H> : custom window size at start-up
+   --viewmode <n>    : set initial display mode (1=outlines, 2=fill sel, 3=fill all, 4=dim all, 5=fade unsel)
+   --zoom <n>        : set initial zoom level (1 to 6)
+   --labels          : enable draw labels
+   --cguides         : enable draw cursor guides
+   --fillnew         : enable fill create-shape
+   --thicklines      : enable thick lines
+   --hidelines       : hide outlines of selected locations
+   --margin <n>      : number of pixels to pad borders of generated location images (default is 0)
+   --aa <n>          : anti-aliasing level used when creating the alpha mask for location images, a value
+                       between 1 and 8 (default is 4)
 
 
 Key summary
