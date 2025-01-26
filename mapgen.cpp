@@ -46,6 +46,7 @@
 #include <FL/Fl_Tooltip.H>
 #include <FL/Fl_File_Chooser.H> 
 #include <FL/Fl_Image_Surface.H>
+#include <FL/Fl_Scheme.H>
 #include <png.h>
 
 
@@ -105,6 +106,8 @@ typedef int BOOL;
 
 #define SNAP_RADIUS				(VERT_HANDLE_RADIUS+3)
 
+#define MAX_WIDGET_SCHEMES		8
+
 
 // transform a coordinate from original map coordinates to image view client space
 #define MAP2CL(_coord) \
@@ -126,6 +129,10 @@ typedef int BOOL;
 // get location array element index from tree id (-1 if invalid)
 #define LOC_FROM_TREE_ID(_treeid) \
 	(MAP_FROM_TREE_ID(_treeid) < 0) ? -1 : g_pProj->maps[MAP_FROM_TREE_ID(_treeid)].GetArrayIndexFromLocationIndex(LOCIDX_FROM_TREE_ID(_treeid))
+
+#define MENU_SET(...) { Fl_Menu_Item __mi = __VA_ARGS__; menu[menu_items++] = __mi; }
+
+#define MENU_MOD_DIV() menu[menu_items-1].flags |= FL_MENU_DIVIDER
 
 #if defined(__unix__) || defined(__UNIX__)
 // work around bug in X11
@@ -168,6 +175,10 @@ static int GetScrollViewClientWidth();
 static int GetScrollViewClientHeight();
 static void ScrollImageTo(int Xzoomed, int Yzoomed);
 static BOOL ChangeZoom(int n);
+
+static unsigned int dark_cmap[42] = {
+#include "dark_cmap.h"
+};
 
 
 /////////////////////////////////////////////////////////////////////
@@ -976,6 +987,7 @@ static int g_iLineWidth = 0;
 static BOOL g_bDrawLabels = FALSE;
 static BOOL g_bDrawCursorGuides = FALSE;
 static BOOL g_bHideSelectedOutline = FALSE;
+static BOOL g_bDarkColorScheme = FALSE;
 
 static int g_iCurSelTreeId = -1;
 static Fl_Tree_Item *g_pCurSelTreeItem = NULL;
@@ -3232,6 +3244,18 @@ static BOOL ChangeZoom(int n)
 	return TRUE;
 }
 
+static void SwapColorScheme()
+{
+	// swap the necessary parts of the color map
+	// NOTE: remove this once proper color scheme handling is implemented in FLTK
+	unsigned int c, i = 0;
+#define SWPCLR(_x,_y) { unsigned int color = Fl::get_color((Fl_Color)_x); Fl::set_color((Fl_Color)_x,dark_cmap[_y]); dark_cmap[_y++] = color; }
+	for (c = FL_FOREGROUND_COLOR; c < FL_FOREGROUND_COLOR+16; c++) SWPCLR(c,i); // 3-bit colormap
+	for (c = FL_GRAY0; c <= FL_BLACK; c++) SWPCLR(c,i); // grayscale ramp and FL_BLACK
+	SWPCLR(FL_WHITE,i); // FL_WHITE
+#undef SWPCLR
+}
+
 static const char* fl_input_ex(const char *label, char *deflt)
 {
 	g_bShowingFlInputDialog = TRUE;
@@ -3854,6 +3878,22 @@ static void OnCmdChangePage(Fl_Widget*, void *p)
 	}
 }
 
+static void OnCmdWidgetScheme(Fl_Widget*, void *p)
+{
+	const char *scheme = (const char *)p;
+
+	if (!Fl::is_scheme(scheme))
+		Fl::scheme(scheme);
+}
+
+static void OnCmdColorScheme(Fl_Widget*, void *)
+{
+	g_bDarkColorScheme = !g_bDarkColorScheme;
+
+	SwapColorScheme();
+	g_pMainWnd->redraw();
+}
+
 static void OnCmdAbout(Fl_Widget*, void*)
 {
 	fl_cursor(FL_CURSOR_DEFAULT);
@@ -3875,52 +3915,6 @@ static void OnCmdAbout(Fl_Widget*, void*)
 
 /////////////////////////////////////////////////////////////////////
 
-// NOTE: don't forget to update the command-line InvokeShortcutFLTK calls if any shortcuts here change or display modes are added
-
-// main menu
-static Fl_Menu_Item g_menu[] =
-{
-	{"&File", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0},
-		{"&Save Project", FL_COMMAND+'s', OnCmdSave, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0},
-		{"&Generate Map Files ", FL_F+7, OnCmdGenerateFiles, NULL, 0, 0, 0, 0, 0},
-		{"G&enerate Selected Only ", FL_COMMAND+(FL_F+7), OnCmdGenerateSelected, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0},
-		{"E&xit", FL_ALT+'x', OnCmdExit, NULL, 0, 0, 0, 0, 0},
-		{},
-
-	{"&Edit", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0},
-		{"&Delete Selected Location ", FL_Delete, OnCmdDelete, NULL, 0, 0, 0, 0, 0},
-		{"Edit Location &Index ", FL_F+9, OnCmdEditIndex, NULL, 0, 0, 0, 0, 0},
-		{"&Move Selected Location ", 'm', OnCmdMove, NULL, 0, 0, 0, 0, 0},
-		{"&View Location Info", 'i', OnCmdInfo, NULL, 0, 0, 0, 0, 0},
-		{"&Recover Page Locations", 'r', OnCmdRecover, NULL, 0, 0, 0, 0, 0},
-		{},
-
-	{"&View", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0},
-		{"&Outlines Only", FL_COMMAND+'1', OnCmdDisplayMode, (void*)DM_OUTLINES, FL_MENU_RADIO|FL_MENU_VALUE, 0, 0, 0, 0},
-		{"Fill &Selection", FL_COMMAND+'2', OnCmdDisplayMode, (void*)DM_FILLSEL, FL_MENU_RADIO, 0, 0, 0, 0},
-		{"Fill &All", FL_COMMAND+'3', OnCmdDisplayMode, (void*)DM_FILLALL, FL_MENU_RADIO, 0, 0, 0, 0},
-		{"&Dim All", FL_COMMAND+'4', OnCmdDisplayMode, (void*)DM_DIMMED, FL_MENU_RADIO, 0, 0, 0, 0},
-		{"Fade &Unselected", FL_COMMAND+'5', OnCmdDisplayMode, (void*)DM_FADE_NONSEL, FL_MENU_RADIO|FL_MENU_DIVIDER, 0, 0, 0, 0},
-		{"&Thick Lines", FL_COMMAND+'t', OnCmdToggleThickLines, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
-		{"Draw &Labels", FL_COMMAND+'l', OnCmdToggleLabels, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
-		{"&Fill Create Shape", FL_COMMAND+'f', OnCmdToggleFillNewShape, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
-		{"Draw Cursor &Guides", FL_COMMAND+'g', OnCmdToggleCursorGuides, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0},
-		{"&Hide Selection Outline ", FL_COMMAND+'h', OnCmdToggleHideSelOutlines, NULL, FL_MENU_TOGGLE|FL_MENU_DIVIDER, 0, 0, 0, 0},
-		{"Zoom O&ut", FL_KP+'-', OnCmdZoom, (void*)-1, 0, 0, 0, 0, 0},
-		{"Zoom &In", FL_KP+'+', OnCmdZoom, (void*)1, FL_MENU_DIVIDER, 0, 0, 0, 0},
-		{"About...", 0, OnCmdAbout, NULL, 0, 0, 0, 0, 0},
-		{},
-
-	// hidden entries, only provide app-wide shortcuts
-	{"Prev Page", FL_Page_Up, OnCmdChangePage, (void*)-1, FL_MENU_INVISIBLE, 0, 0, 0, 0},
-	{"Next Page", FL_Page_Down, OnCmdChangePage, (void*)1, FL_MENU_INVISIBLE, 0, 0, 0, 0},
-
-	{}
-};
-
-
-/////////////////////////////////////////////////////////////////////
-
 static void InitControls()
 {
 	sprintf(g_sAppTitle, DARKMAPGEN_TITLE " " DARKMAPGEN_VERSION " %s - %s", g_bShockMaps?"[SS2]":"[Thief]", g_pProj->sDir);
@@ -3936,7 +3930,62 @@ static void InitControls()
 		Fl::y() + ((Fl::h() - g_pMainWnd->h()) / 2)
 		);
 
-	g_pMenuBar->menu(g_menu);
+	// main menu
+
+	const int MAX_MENU_ITEMS = 32+16;
+	int menu_items = 0;
+
+	// NOTE: don't forget to update the command-line InvokeShortcutFLTK calls if any shortcuts here change or display modes are added
+
+	Fl_Menu_Item menu[MAX_MENU_ITEMS];
+
+	MENU_SET( {"&File", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0} );
+		MENU_SET( {"&Save Project", FL_COMMAND+'s', OnCmdSave, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0} );
+		MENU_SET( {"&Generate Map Files ", FL_F+7, OnCmdGenerateFiles, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {"G&enerate Selected Only ", FL_COMMAND+(FL_F+7), OnCmdGenerateSelected, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0} );
+		MENU_SET( {"E&xit", FL_ALT+'x', OnCmdExit, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {} );
+
+	MENU_SET( {"&Edit", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0} );
+		MENU_SET( {"&Delete Selected Location ", FL_Delete, OnCmdDelete, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {"Edit Location &Index ", FL_F+9, OnCmdEditIndex, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {"&Move Selected Location ", 'm', OnCmdMove, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {"&View Location Info", 'i', OnCmdInfo, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {"&Recover Page Locations", 'r', OnCmdRecover, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {} );
+
+	MENU_SET( {"&View", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0} );
+		MENU_SET( {"&Outlines Only", FL_COMMAND+'1', OnCmdDisplayMode, (void*)DM_OUTLINES, FL_MENU_RADIO|FL_MENU_VALUE, 0, 0, 0, 0} );
+		MENU_SET( {"Fill &Selection", FL_COMMAND+'2', OnCmdDisplayMode, (void*)DM_FILLSEL, FL_MENU_RADIO, 0, 0, 0, 0} );
+		MENU_SET( {"Fill &All", FL_COMMAND+'3', OnCmdDisplayMode, (void*)DM_FILLALL, FL_MENU_RADIO, 0, 0, 0, 0} );
+		MENU_SET( {"&Dim All", FL_COMMAND+'4', OnCmdDisplayMode, (void*)DM_DIMMED, FL_MENU_RADIO, 0, 0, 0, 0} );
+		MENU_SET( {"Fade &Unselected", FL_COMMAND+'5', OnCmdDisplayMode, (void*)DM_FADE_NONSEL, FL_MENU_RADIO|FL_MENU_DIVIDER, 0, 0, 0, 0} );
+		MENU_SET( {"&Thick Lines", FL_COMMAND+'t', OnCmdToggleThickLines, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0} );
+		MENU_SET( {"Draw &Labels", FL_COMMAND+'l', OnCmdToggleLabels, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0} );
+		MENU_SET( {"&Fill Create Shape", FL_COMMAND+'f', OnCmdToggleFillNewShape, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0} );
+		MENU_SET( {"Draw Cursor &Guides", FL_COMMAND+'g', OnCmdToggleCursorGuides, NULL, FL_MENU_TOGGLE, 0, 0, 0, 0} );
+		MENU_SET( {"&Hide Selection Outline ", FL_COMMAND+'h', OnCmdToggleHideSelOutlines, NULL, FL_MENU_TOGGLE|FL_MENU_DIVIDER, 0, 0, 0, 0} );
+		MENU_SET( {"Zoom O&ut", FL_KP+'-', OnCmdZoom, (void*)-1, 0, 0, 0, 0, 0} );
+		MENU_SET( {"Zoom &In", FL_KP+'+', OnCmdZoom, (void*)1, FL_MENU_DIVIDER, 0, 0, 0, 0} );
+		MENU_SET( {"T&heme", 0, NULL, NULL, FL_SUBMENU|FL_MENU_DIVIDER, 0, 0, 0, 0} );
+			for (int i=0; i<Fl_Scheme::num_schemes() && i<MAX_WIDGET_SCHEMES; i++)
+			{
+				const char *scheme = Fl_Scheme::names()[i];
+				MENU_SET( {scheme, 0, OnCmdWidgetScheme, (void*)scheme, FL_MENU_RADIO|(Fl::is_scheme(scheme)?FL_MENU_VALUE:0), 0, 0, 0, 0} );
+			}
+			MENU_MOD_DIV();
+			MENU_SET( {"Dark Colors", 0, OnCmdColorScheme, NULL, FL_MENU_TOGGLE|(g_bDarkColorScheme?FL_MENU_VALUE:0), 0, 0, 0, 0} );
+			MENU_SET( {} );
+		MENU_SET( {"About...", 0, OnCmdAbout, NULL, 0, 0, 0, 0, 0} );
+		MENU_SET( {} );
+
+	// hidden entries, only provide app-wide shortcuts
+	MENU_SET( {"Prev Page", FL_Page_Up, OnCmdChangePage, (void*)-1, FL_MENU_INVISIBLE, 0, 0, 0, 0} );
+	MENU_SET( {"Next Page", FL_Page_Down, OnCmdChangePage, (void*)1, FL_MENU_INVISIBLE, 0, 0, 0, 0} );
+
+	MENU_SET( {} );
+
+	g_pMenuBar->menu(menu);
 
 	PopulateTree();
 
@@ -4061,21 +4110,9 @@ static void InitFLTK(const char *lpszFlTheme)
 {
 	Fl::visual(FL_RGB);
 
-	if (*lpszFlTheme == 'd')
-	{
-		const unsigned int dark_cmap[42] = {
-#include "dark_cmap.h"
-		};
-		unsigned int c, i = 0;
-#define SETCLR(_x,_y) Fl::set_color((Fl_Color)_x,dark_cmap[_y++])
-		for (c = FL_FOREGROUND_COLOR; c < FL_FOREGROUND_COLOR+16; c++) SETCLR(c,i); // 3-bit colormap
-		for (c = FL_GRAY0; c <= FL_BLACK; c++) SETCLR(c,i); // grayscale ramp and FL_BLACK
-		SETCLR(FL_WHITE,i); // FL_WHITE
-#undef SETCLR
-		Fl::scheme(lpszFlTheme+1);
-	}
-	else
-		Fl::scheme(lpszFlTheme);
+	if (g_bDarkColorScheme)
+		SwapColorScheme();
+	Fl::scheme(lpszFlTheme);
 
 	fl_message_icon()->box(FL_FLAT_BOX);
 	fl_message_icon()->color(FL_GRAY0+20);
@@ -4096,6 +4133,18 @@ static BOOL GetCommandLineInt(int argc, char **argv, const char *lpszOption, int
 		if (!stricmp(argv[i], lpszOption) && argc > i+1 && isdigit((int)(UINT)(BYTE)argv[i+1][0]))
 		{
 			iVal = atoi(argv[i+1]);
+			return TRUE;
+		}
+
+	return FALSE;
+}
+
+static BOOL GetCommandLineString(int argc, char **argv, const char *lpszOption, const char *&pszVal)
+{
+	for (int i=1; i<argc; i++)
+		if (!stricmp(argv[i], lpszOption) && argc > i+1 && argv[i+1][0] != '-')
+		{
+			pszVal = argv[i+1];
 			return TRUE;
 		}
 
@@ -4133,11 +4182,11 @@ int main(int argc, char **argv)
 #ifdef DEF_THEME
 #define DEF_THEME_S(s) DEF_THEME_S_(s)
 #define DEF_THEME_S_(s) #s
-	const char *lpszFlTheme = DEF_THEME_S(DEF_THEME);
+	char szFlTheme[32] = DEF_THEME_S(DEF_THEME);
 #undef DEF_THEME_S
 #undef DEF_THEME_S_
 #else
-	const char *lpszFlTheme = "gtk+";
+	char szFlTheme[32] = "gtk+";
 #endif
 	int w = -1, h = -1;
 
@@ -4150,7 +4199,6 @@ int main(int argc, char **argv)
 		else if ( HasCommandLineOption(argc, argv, "--shock") )
 			g_bShockMaps = TRUE;
 		bUseCurrentDir = HasCommandLineOption(argc, argv, "--cwd");
-		g_bHideSelectedOutline = HasCommandLineOption(argc, argv, "--hidelines");
 
 		if ( GetCommandLineInt(argc, argv, "--zoom", g_iZoom) )
 		{
@@ -4172,17 +4220,14 @@ int main(int argc, char **argv)
 				g_iAlphaExportAA = 8;
 		}
 
-#ifdef DEF_THEME
-		if ( HasCommandLineOption(argc, argv, "--theme_gtk") )
-			lpszFlTheme = "gtk+";
-		else
-#endif
-		if ( HasCommandLineOption(argc, argv, "--theme_dark") )
-			lpszFlTheme = "dgtk+";
-		else if ( HasCommandLineOption(argc, argv, "--theme_plastic") )
-			lpszFlTheme = "plastic";
-		else if ( HasCommandLineOption(argc, argv, "--theme_base") )
-			lpszFlTheme = "base";
+		const char *szArg;
+		if ( GetCommandLineString(argc, argv, "--theme", szArg) )
+		{
+			strncpy(szFlTheme, szArg, sizeof(szFlTheme)-1);
+			szFlTheme[sizeof(szFlTheme)-1] = '\0';
+		}
+
+		g_bDarkColorScheme = HasCommandLineOption(argc, argv, "--darkcolors");
 
 		for (int i=1; i<argc; i++)
 			if (!stricmp(argv[i], "--winsize") && argc > i+1)
@@ -4200,16 +4245,9 @@ int main(int argc, char **argv)
 			}
 	}
 
-	InitFLTK(lpszFlTheme);
+	InitFLTK(szFlTheme);
 
     MakeWindow(w, h);
-
-	if (*lpszFlTheme == 'd' && g_pTreeView)
-	{
-		g_pTreeView->selection_color(FL_FOREGROUND_COLOR);
-		g_pTreeView->item_labelfgcolor(FL_FOREGROUND_COLOR);
-		g_pTreeView->connectorcolor(FL_FOREGROUND_COLOR);
-	}
 
 	if (g_pMainWnd)
 	{
@@ -4253,6 +4291,8 @@ int main(int argc, char **argv)
 				InvokeShortcutFLTK(FL_COMMAND+'g');
 			if ( HasCommandLineOption(argc, argv, "--fillnew") )
 				InvokeShortcutFLTK(FL_COMMAND+'f');
+			if ( HasCommandLineOption(argc, argv, "--hidelines") )
+				InvokeShortcutFLTK(FL_COMMAND+'h');
 		}
 
 		Fl::run();

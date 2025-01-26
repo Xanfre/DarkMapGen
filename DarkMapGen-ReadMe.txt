@@ -125,10 +125,8 @@ Command-line options
    --thief           : run in Thief mode without auto-detection
    --shock           : run in System Shock 2 mode without auto-detection
    --cwd             : use current working directory instead of prompting user
-   --theme_gtk       : use the 'GTK+' UI theme (only available if another default theme is set)
-   --theme_dark      : use the 'GTK+' UI theme with dark colors
-   --theme_plastic   : use the 'Plastic' UI theme
-   --theme_base      : use the basic UI theme
+   --theme <name>    : select UI theme (currently available are "base", "plastic", "gtk+", "gleam", and "oxy")
+   --darkcolors      : use the dark UI color scheme
    --winsize <W>x<H> : custom window size at start-up
    --viewmode <n>    : set initial display mode (1=outlines, 2=fill sel, 3=fill all, 4=dim all, 5=fade unsel)
    --zoom <n>        : set initial zoom level (1 to 6)
@@ -164,6 +162,7 @@ Shortcuts:
    <F9>             : edit location index
    m                : move selected location
    i                : display location information dialog
+   r                : recover location data from rects file
 
    <CTRL> + 1       : display mode - shape outlines only
    <CTRL> + 2       : display mode - fill shapes of selected location only
