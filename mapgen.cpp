@@ -28,11 +28,7 @@
 #include <windows.h>
 #else
 #include <unistd.h>
-#define stricmp strcasecmp
 #define _copysign copysign
-#define _stat stat
-#define _getcwd getcwd
-#define _chdir chdir
 #define MAX_PATH PATH_MAX
 #endif
 #include <FL/Fl.H>
@@ -47,6 +43,7 @@
 #include <FL/Fl_File_Chooser.H> 
 #include <FL/Fl_Image_Surface.H>
 #include <FL/Fl_Scheme.H>
+#include <FL/fl_utf8.h>
 #include <png.h>
 
 
@@ -764,7 +761,7 @@ struct sProject
 		char s[MAX_PATH+32];
 		sprintf(s, "%s" DIRSEP_STR PROJ_FILENAME, sDir);
 
-		FILE *f = fopen(s, "r");
+		FILE *f = fl_fopen(s, "r");
 		if (!f)
 			// assume no project file, means we're starting a new project
 			return TRUE;
@@ -787,7 +784,7 @@ struct sProject
 			if ( feof(f) )
 				break;
 
-			if ( !stricmp(sCmd, "PAG") )
+			if ( !fl_utf_strcasecmp(sCmd, "PAG") )
 			{
 				// start loading new page
 
@@ -803,7 +800,7 @@ struct sProject
 				pMap = &maps[iCurPage];
 				pLoc = &pMap->locs[0];
 			}
-			else if ( !stricmp(sCmd, "LOC") )
+			else if ( !fl_utf_strcasecmp(sCmd, "LOC") )
 			{
 				if (pMap->iLocationCount >= MAX_LOCATIONS_PER_MAP)
 				{
@@ -905,7 +902,7 @@ struct sProject
 		char s[MAX_PATH+32];
 		sprintf(s, "%s" DIRSEP_STR PROJ_FILENAME, sDir);
 
-		FILE *f = fopen(s, "w");
+		FILE *f = fl_fopen(s, "w");
 		if (!f)
 		{
 			Fl_Window *w = Fl::first_window();
@@ -2479,12 +2476,12 @@ static BOOL LoadProject(const char *sDir)
 		// auto-detect shock/thief mode
 		g_bShockMaps = FALSE;
 
-		struct _stat st;
+		struct stat st;
 		sprintf(s, "%s" DIRSEP_STR "page001a.png", sDir);
-		if ( !_stat(s, &st) )
+		if ( !fl_stat(s, &st) )
 		{
 			sprintf(s, "%s" DIRSEP_STR "page001a-hi.png", sDir);
-			if ( !_stat(s, &st) )
+			if ( !fl_stat(s, &st) )
 				g_bShockMaps = TRUE;
 		}
 	}
@@ -2853,7 +2850,7 @@ static BOOL SavePNG32(Fl_RGB_Image *img, char *sFileName)
 	if (!img || img->d() != 4)
 		return FALSE;
 
-	FILE *f = fopen(sFileName, "wb");
+	FILE *f = fl_fopen(sFileName, "wb");
 	if (!f)
 		return FALSE;
 
@@ -2915,7 +2912,7 @@ static BOOL SaveTGA32(Fl_RGB_Image *img, char *sFileName)
 	if (!img || img->d() != 4)
 		return FALSE;
 
-	FILE *f = fopen(sFileName, "wb");
+	FILE *f = fl_fopen(sFileName, "wb");
 	if (!f)
 		return FALSE;
 
@@ -2991,7 +2988,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 
 		// dark rects file containing the location positions (in index order)
 		sprintf(s, "p%03dra.bin", i);
-		FILE *f = fopen(s, "wb");
+		FILE *f = fl_fopen(s, "wb");
 		if (!f)
 		{
 			fl_cursor(FL_CURSOR_DEFAULT);
@@ -3005,7 +3002,7 @@ static void GenerateFiles(BOOL bSaveTGA, int iGenerateMap = -1, int iGenerateLoc
 		if (g_bShockMaps)
 		{
 			sprintf(s, "p%03dxa.bin", i);
-			FILE *f2 = fopen(s, "wb");
+			FILE *f2 = fl_fopen(s, "wb");
 			if (!f2)
 			{
 				fl_cursor(FL_CURSOR_DEFAULT);
@@ -3724,7 +3721,7 @@ static void OnCmdRecover(Fl_Widget*, void*)
 
 	// dark rects file containing the location positions (in index order)
 	sprintf(s, "p%03dra.bin", g_pProj->iCurMap);
-	FILE *f = fopen(s, "rb");
+	FILE *f = fl_fopen(s, "rb");
 	if (!f && g_bShockMaps)
 	{
 		fl_cursor(FL_CURSOR_DEFAULT);
@@ -3732,7 +3729,7 @@ static void OnCmdRecover(Fl_Widget*, void*)
 		fl_alert("Could not locate rects file \"%s\" for recovery", s);
 		fl_cursor(FL_CURSOR_WAIT);
 		sprintf(s, "p%03dxa.bin", g_pProj->iCurMap);
-		f = fopen(s, "rb");
+		f = fl_fopen(s, "rb");
 	}
 	if (!f)
 	{
@@ -4121,7 +4118,7 @@ static void InitFLTK(const char *lpszFlTheme)
 static BOOL HasCommandLineOption(int argc, char **argv, const char *lpszOption)
 {
 	for (int i=1; i<argc; i++)
-		if ( !stricmp(argv[i], lpszOption) )
+		if ( !fl_utf_strcasecmp(argv[i], lpszOption) )
 			return TRUE;
 
 	return FALSE;
@@ -4130,7 +4127,7 @@ static BOOL HasCommandLineOption(int argc, char **argv, const char *lpszOption)
 static BOOL GetCommandLineInt(int argc, char **argv, const char *lpszOption, int &iVal)
 {
 	for (int i=1; i<argc; i++)
-		if (!stricmp(argv[i], lpszOption) && argc > i+1 && isdigit((int)(UINT)(BYTE)argv[i+1][0]))
+		if (!fl_utf_strcasecmp(argv[i], lpszOption) && argc > i+1 && isdigit((int)(UINT)(BYTE)argv[i+1][0]))
 		{
 			iVal = atoi(argv[i+1]);
 			return TRUE;
@@ -4142,7 +4139,7 @@ static BOOL GetCommandLineInt(int argc, char **argv, const char *lpszOption, int
 static BOOL GetCommandLineString(int argc, char **argv, const char *lpszOption, const char *&pszVal)
 {
 	for (int i=1; i<argc; i++)
-		if (!stricmp(argv[i], lpszOption) && argc > i+1 && argv[i+1][0] != '-')
+		if (!fl_utf_strcasecmp(argv[i], lpszOption) && argc > i+1 && argv[i+1][0] != '-')
 		{
 			pszVal = argv[i+1];
 			return TRUE;
@@ -4230,7 +4227,7 @@ int main(int argc, char **argv)
 		g_bDarkColorScheme = HasCommandLineOption(argc, argv, "--darkcolors");
 
 		for (int i=1; i<argc; i++)
-			if (!stricmp(argv[i], "--winsize") && argc > i+1)
+			if (!fl_utf_strcasecmp(argv[i], "--winsize") && argc > i+1)
 			{
 				sscanf(argv[i+1], "%dx%d", &w, &h);
 				if (h > 0)
@@ -4260,11 +4257,11 @@ int main(int argc, char **argv)
 				return 0;
 			}
 
-			_chdir(sDir);
+			fl_chdir(sDir);
 		}
 
 		char s[MAX_PATH];
-		LoadProject( _getcwd(s, sizeof(s)) );
+		LoadProject( fl_getcwd(s, sizeof(s)) );
 
 		if (!g_pProj->iMapCount)
 		{
