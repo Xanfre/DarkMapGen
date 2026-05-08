@@ -3921,7 +3921,7 @@ static void InitControls()
 
 	// main menu
 
-	const int MAX_MENU_ITEMS = 32+16;
+	const int MAX_MENU_ITEMS = 128;
 	int menu_items = 0;
 
 	// NOTE: don't forget to update the command-line InvokeShortcutFLTK calls if any shortcuts here change or display modes are added
