@@ -46,6 +46,9 @@
 #include <FL/fl_utf8.h>
 #include <png.h>
 
+#include "Fle_Colors.hpp"
+#include "Fle_Schemes.hpp"
+
 
 /////////////////////////////////////////////////////////////////////
 
@@ -172,10 +175,6 @@ static int GetScrollViewClientWidth();
 static int GetScrollViewClientHeight();
 static void ScrollImageTo(int Xzoomed, int Yzoomed);
 static BOOL ChangeZoom(int n);
-
-static unsigned int dark_cmap[42] = {
-#include "dark_cmap.h"
-};
 
 
 /////////////////////////////////////////////////////////////////////
@@ -984,7 +983,6 @@ static int g_iLineWidth = 0;
 static BOOL g_bDrawLabels = FALSE;
 static BOOL g_bDrawCursorGuides = FALSE;
 static BOOL g_bHideSelectedOutline = FALSE;
-static BOOL g_bDarkColorScheme = FALSE;
 
 static int g_iCurSelTreeId = -1;
 static Fl_Tree_Item *g_pCurSelTreeItem = NULL;
@@ -3241,18 +3239,6 @@ static BOOL ChangeZoom(int n)
 	return TRUE;
 }
 
-static void SwapColorScheme()
-{
-	// swap the necessary parts of the color map
-	// NOTE: remove this once proper color scheme handling is implemented in FLTK
-	unsigned int c, i = 0;
-#define SWPCLR(_x,_y) { unsigned int color = Fl::get_color((Fl_Color)_x); Fl::set_color((Fl_Color)_x,dark_cmap[_y]); dark_cmap[_y++] = color; }
-	for (c = FL_FOREGROUND_COLOR; c < FL_FOREGROUND_COLOR+16; c++) SWPCLR(c,i); // 3-bit colormap
-	for (c = FL_GRAY0; c <= FL_BLACK; c++) SWPCLR(c,i); // grayscale ramp and FL_BLACK
-	SWPCLR(FL_WHITE,i); // FL_WHITE
-#undef SWPCLR
-}
-
 static const char* fl_input_ex(const char *label, char *deflt)
 {
 	g_bShowingFlInputDialog = TRUE;
@@ -3883,11 +3869,19 @@ static void OnCmdWidgetScheme(Fl_Widget*, void *p)
 		Fl::scheme(scheme);
 }
 
-static void OnCmdColorScheme(Fl_Widget*, void *)
+static void OnCmdWidgetExScheme(Fl_Widget*, void *p)
 {
-	g_bDarkColorScheme = !g_bDarkColorScheme;
+	const char *scheme = (const char *)p;
 
-	SwapColorScheme();
+	fle_set_scheme(scheme);
+}
+
+static void OnCmdColorScheme(Fl_Widget*, void *p)
+{
+	const char *colors = (const char *)p;
+
+	fle_set_colors(colors);
+
 	g_pMainWnd->redraw();
 }
 
@@ -3964,14 +3958,24 @@ static void InitControls()
 		MENU_SET( {"&Hide Selection Outline ", FL_COMMAND+'h', OnCmdToggleHideSelOutlines, NULL, FL_MENU_TOGGLE|FL_MENU_DIVIDER, 0, 0, 0, 0} );
 		MENU_SET( {"Zoom O&ut", FL_KP+'-', OnCmdZoom, (void*)-1, 0, 0, 0, 0, 0} );
 		MENU_SET( {"Zoom &In", FL_KP+'+', OnCmdZoom, (void*)1, FL_MENU_DIVIDER, 0, 0, 0, 0} );
-		MENU_SET( {"T&heme", 0, NULL, NULL, FL_SUBMENU|FL_MENU_DIVIDER, 0, 0, 0, 0} );
+		MENU_SET( {"T&heme", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0} );
 			for (int i=0; i<Fl_Scheme::num_schemes() && i<MAX_WIDGET_SCHEMES; i++)
 			{
 				const char *scheme = Fl_Scheme::names()[i];
 				MENU_SET( {scheme, 0, OnCmdWidgetScheme, (void*)scheme, FL_MENU_RADIO|(Fl::is_scheme(scheme)?FL_MENU_VALUE:0), 0, 0, 0, 0} );
 			}
-			MENU_MOD_DIV();
-			MENU_SET( {"Dark Colors", 0, OnCmdColorScheme, NULL, FL_MENU_TOGGLE|(g_bDarkColorScheme?FL_MENU_VALUE:0), 0, 0, 0, 0} );
+			for (int i=0; i<fle_num_schemes(); i++)
+			{
+				const char *scheme = fle_scheme_name(i);
+				MENU_SET( {scheme, 0, OnCmdWidgetExScheme, (void*)scheme, FL_MENU_RADIO|(!strcmp(scheme,fle_get_scheme())?FL_MENU_VALUE:0), 0, 0, 0, 0} );
+			}
+			MENU_SET( {} );
+		MENU_SET( {"&Colors", 0, NULL, NULL, FL_SUBMENU|FL_MENU_DIVIDER, 0, 0, 0, 0} );
+			for (int i=0; i<fle_num_colors(); i++)
+			{
+				const char *colors = fle_colors_name(i);
+				MENU_SET( {colors, 0, OnCmdColorScheme, (void*)colors, FL_MENU_RADIO|(!strcmp(colors,fle_get_colors())?FL_MENU_VALUE:0), 0, 0, 0, 0} );
+			}
 			MENU_SET( {} );
 		MENU_SET( {"About...", 0, OnCmdAbout, NULL, 0, 0, 0, 0, 0} );
 		MENU_SET( {} );
@@ -4030,7 +4034,7 @@ static void MakeWindow(int W, int H)
 
     g_pTreeView = new Fl_Tree_Ex(W-160, 25, 160, H-27);
 	g_pMainWnd->add(g_pTreeView);
-	g_pTreeView->color(FL_LIGHT3);
+	//g_pTreeView->color(FL_LIGHT3);
 	g_pTreeView->selectmode(FL_TREE_SELECT_SINGLE);
 	g_pTreeView->sortorder(FL_TREE_SORT_ASCENDING);
 	g_pTreeView->showroot(0);
@@ -4103,12 +4107,11 @@ static void ScrollImageTo(int Xzoomed, int Yzoomed)
 }
 
 
-static void InitFLTK(const char *lpszFlTheme)
+static void InitFLTK(const char *lpszFlTheme, const char *lpszColors)
 {
 	Fl::visual(FL_RGB);
 
-	if (g_bDarkColorScheme)
-		SwapColorScheme();
+	fle_set_colors(lpszColors);
 	Fl::scheme(lpszFlTheme);
 
 	fl_message_icon()->box(FL_FLAT_BOX);
@@ -4185,6 +4188,15 @@ int main(int argc, char **argv)
 #else
 	char szFlTheme[32] = "gtk+";
 #endif
+#ifdef DEF_COLORS
+#define DEF_COLORS_S(s) DEF_COLORS_S_(s)
+#define DEF_COLORS_S_(s) #s
+	char szColors[32] = DEF_COLORS_S(DEF_COLORS);
+#undef DEF_COLORS_S
+#undef DEF_COLORS_S_
+#else
+	char szColors[32] = "default";
+#endif
 	int w = -1, h = -1;
 
 	g_bShockMaps = -1;
@@ -4223,8 +4235,11 @@ int main(int argc, char **argv)
 			strncpy(szFlTheme, szArg, sizeof(szFlTheme)-1);
 			szFlTheme[sizeof(szFlTheme)-1] = '\0';
 		}
-
-		g_bDarkColorScheme = HasCommandLineOption(argc, argv, "--darkcolors");
+		if ( GetCommandLineString(argc, argv, "--colors", szArg) )
+		{
+			strncpy(szColors, szArg, sizeof(szColors)-1);
+			szColors[sizeof(szColors)-1] = '\0';
+		}
 
 		for (int i=1; i<argc; i++)
 			if (!fl_utf_strcasecmp(argv[i], "--winsize") && argc > i+1)
@@ -4242,7 +4257,7 @@ int main(int argc, char **argv)
 			}
 	}
 
-	InitFLTK(szFlTheme);
+	InitFLTK(szFlTheme, szColors);
 
     MakeWindow(w, h);
 

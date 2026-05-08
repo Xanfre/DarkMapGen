@@ -34,7 +34,9 @@ else
 	BINEXT =
 endif
 
-OBJS = $(objdir)/mapgen.o
+OBJS = $(objdir)/mapgen.o \
+	$(objdir)/Fle_Colors.o \
+	$(objdir)/Fle_Schemes.o
 
 .PHONY: all install clean
 
@@ -61,7 +63,7 @@ $(objdir)/%.o: %.cxx
 $(objdir)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS_ALL) $(CPPFLAGS_ALL) -c -o $@ $<
 
-$(objdir)/mapgen.o: dmg_curs.h dark_cmap.h
+$(objdir)/mapgen.o: dmg_curs.h
 
 DarkMapGen$(BINEXT): $(OBJS)
 	$(CXX) $(CXXFLAGS_ALL) $^ -o $@ $(LDFLAGS_ALL)
