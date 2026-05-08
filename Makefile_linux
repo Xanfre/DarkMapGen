@@ -5,15 +5,10 @@ BINDIR = $(PREFIX)/bin
 DOCDIR = $(PREFIX)/share/doc/DarkMapGen
 LICDIR = $(PREFIX)/share/licenses/DarkMapGen
 
-TARGET ?=
-ifeq ($(TARGET),)
 CXX ?= g++
-else
-CXX = $(TARGET)-g++
-endif
 
 CXXFLAGS_ALL = -O2 $(CXXFLAGS)
-CPPFLAGS_ALL = -std=gnu++11 -Wall -Wextra -Wno-unused -Wno-unused-result -Wno-cast-function-type $(CPPFLAGS)
+CPPFLAGS_ALL = -std=gnu++11 -Wall -Wextra -Wno-unused -Wno-unused-result $(CPPFLAGS)
 
 ifeq ($(STATIC),)
 	LDFLAGS_FLTK = $(shell fltk-config --use-images --ldflags) $(shell pkg-config --libs libpng)
@@ -29,19 +24,19 @@ OBJS = $(objdir)/mapgen.o \
 
 .PHONY: all install clean
 
-all: $(objdir) DarkMapGen.exe
+all: $(objdir) DarkMapGen
 
 install:
 	mkdir -p $(DESTDIR)$(BINDIR)
 	mkdir -p $(DESTDIR)$(DOCDIR)
 	mkdir -p $(DESTDIR)$(LICDIR)
-	install -p -m 755 DarkMapGen.exe $(DESTDIR)$(BINDIR)
+	install -p -m 755 DarkMapGen $(DESTDIR)$(BINDIR)
 	install -p -m 644 DarkMapGen-ReadMe.txt $(DESTDIR)$(DOCDIR)
 	install -p -m 644 license.txt $(DESTDIR)$(LICDIR)/LICENSE
 
 clean:
 	rm -rf $(objdir)
-	rm -f DarkMapGen.exe
+	rm -f DarkMapGen
 
 $(objdir):
 	mkdir -p $@
@@ -54,5 +49,5 @@ $(objdir)/%.o: %.cpp
 
 $(objdir)/mapgen.o: dmg_curs.h
 
-DarkMapGen.exe: $(OBJS)
+DarkMapGen: $(OBJS)
 	$(CXX) $(CXXFLAGS_ALL) $^ -o $@ $(LDFLAGS_ALL)
