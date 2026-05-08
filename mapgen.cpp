@@ -106,8 +106,6 @@ typedef int BOOL;
 
 #define SNAP_RADIUS				(VERT_HANDLE_RADIUS+3)
 
-#define MAX_WIDGET_SCHEMES		8
-
 
 // transform a coordinate from original map coordinates to image view client space
 #define MAP2CL(_coord) \
@@ -3959,7 +3957,7 @@ static void InitControls()
 		MENU_SET( {"Zoom O&ut", FL_KP+'-', OnCmdZoom, (void*)-1, 0, 0, 0, 0, 0} );
 		MENU_SET( {"Zoom &In", FL_KP+'+', OnCmdZoom, (void*)1, FL_MENU_DIVIDER, 0, 0, 0, 0} );
 		MENU_SET( {"T&heme", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0} );
-			for (int i=0; i<Fl_Scheme::num_schemes() && i<MAX_WIDGET_SCHEMES; i++)
+			for (int i=0; i<Fl_Scheme::num_schemes(); i++)
 			{
 				const char *scheme = Fl_Scheme::names()[i];
 				MENU_SET( {scheme, 0, OnCmdWidgetScheme, (void*)scheme, FL_MENU_RADIO|(Fl::is_scheme(scheme)?FL_MENU_VALUE:0), 0, 0, 0, 0} );

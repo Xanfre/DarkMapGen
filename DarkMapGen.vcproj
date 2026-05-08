@@ -181,6 +181,14 @@
 				RelativePath=".\mapgen.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\Fle_Colors.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Fle_Schemes.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

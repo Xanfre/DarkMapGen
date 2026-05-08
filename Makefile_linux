@@ -47,7 +47,7 @@ $(objdir)/%.o: %.cxx
 $(objdir)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS_ALL) $(CPPFLAGS_ALL) -c -o $@ $<
 
-$(objdir)/mapgen.o: dmg_curs.h
+$(objdir)/mapgen.o: dmg_curs.h Fle_Colors.hpp Fle_Schemes.hpp
 
 DarkMapGen: $(OBJS)
 	$(CXX) $(CXXFLAGS_ALL) $^ -o $@ $(LDFLAGS_ALL)
