@@ -16,7 +16,7 @@ else
 	LDFLAGS_FLTK = $(shell fltk-config --use-images --ldstaticflags) $(shell pkg-config --libs --static libpng) -static
 endif
 
-LDFLAGS_ALL = $(LDFLAGS_FLTK) $(LDFLAGS)
+LDFLAGS_ALL = $(LDFLAGS_FLTK) -Wl,--strip-all $(LDFLAGS)
 
 OBJS = $(objdir)/mapgen.o \
 	$(objdir)/Fle_Colors.o \
