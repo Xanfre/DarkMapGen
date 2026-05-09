@@ -3934,7 +3934,7 @@ static void InitControls()
 
 	// NOTE: don't forget to update the command-line InvokeShortcutFLTK calls if any shortcuts here change or display modes are added
 
-	Fl_Menu_Item menu[MAX_MENU_ITEMS];
+	static Fl_Menu_Item menu[MAX_MENU_ITEMS];
 
 	MENU_SET( {"&File", 0, NULL, NULL, FL_SUBMENU, 0, 0, 0, 0} );
 		MENU_SET( {"&Save Project", FL_COMMAND+'s', OnCmdSave, NULL, FL_MENU_DIVIDER, 0, 0, 0, 0} );
