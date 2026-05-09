@@ -3865,6 +3865,8 @@ static void OnCmdWidgetScheme(Fl_Widget*, void *p)
 
 	if (!Fl::is_scheme(scheme))
 		Fl::scheme(scheme);
+
+	g_pMainWnd->redraw();
 }
 
 static void OnCmdWidgetExScheme(Fl_Widget*, void *p)
@@ -3872,6 +3874,8 @@ static void OnCmdWidgetExScheme(Fl_Widget*, void *p)
 	const char *scheme = (const char *)p;
 
 	fle_set_scheme(scheme);
+
+	g_pMainWnd->redraw();
 }
 
 static void OnCmdColorScheme(Fl_Widget*, void *p)
