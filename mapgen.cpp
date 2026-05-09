@@ -46,8 +46,10 @@
 #include <FL/fl_utf8.h>
 #include <png.h>
 
+#ifndef NO_FLEET
 #include "Fle_Colors.hpp"
 #include "Fle_Schemes.hpp"
+#endif
 
 
 /////////////////////////////////////////////////////////////////////
@@ -3869,6 +3871,7 @@ static void OnCmdWidgetScheme(Fl_Widget*, void *p)
 	g_pMainWnd->redraw();
 }
 
+#ifndef NO_FLEET
 static void OnCmdWidgetExScheme(Fl_Widget*, void *p)
 {
 	const char *scheme = (const char *)p;
@@ -3886,6 +3889,7 @@ static void OnCmdColorScheme(Fl_Widget*, void *p)
 
 	g_pMainWnd->redraw();
 }
+#endif
 
 static void OnCmdAbout(Fl_Widget*, void*)
 {
@@ -3966,6 +3970,7 @@ static void InitControls()
 				const char *scheme = Fl_Scheme::names()[i];
 				MENU_SET( {scheme, 0, OnCmdWidgetScheme, (void*)scheme, FL_MENU_RADIO|(Fl::is_scheme(scheme)?FL_MENU_VALUE:0), 0, 0, 0, 0} );
 			}
+#ifndef NO_FLEET
 			for (int i=0; i<fle_num_schemes(); i++)
 			{
 				const char *scheme = fle_scheme_name(i);
@@ -3978,6 +3983,7 @@ static void InitControls()
 				const char *colors = fle_colors_name(i);
 				MENU_SET( {colors, 0, OnCmdColorScheme, (void*)colors, FL_MENU_RADIO|(!strcmp(colors,fle_get_colors())?FL_MENU_VALUE:0), 0, 0, 0, 0} );
 			}
+#endif
 			MENU_SET( {} );
 		MENU_SET( {"About...", 0, OnCmdAbout, NULL, 0, 0, 0, 0, 0} );
 		MENU_SET( {} );
@@ -4113,7 +4119,9 @@ static void InitFLTK(const char *lpszFlTheme, const char *lpszColors)
 {
 	Fl::visual(FL_RGB);
 
+#ifndef NO_FLEET
 	fle_set_colors(lpszColors);
+#endif
 	Fl::scheme(lpszFlTheme);
 
 	fl_message_icon()->box(FL_FLAT_BOX);
